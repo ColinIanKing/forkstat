@@ -1,0 +1,18 @@
+Source: forkstat
+Section: admin
+Priority: optional
+Maintainer: Colin King <colin.king@canonical.com>
+Uploaders: Kamal Mostafa <kamal@whence.com>
+Standards-Version: 3.9.5
+Build-Depends: debhelper (>= 7)
+Homepage: http://kernel.ubuntu.com/~cking/forkstat
+
+Package: forkstat
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: process fork/exec/exit monitoring tool
+ Forkstat monitors process fork(), exec() and exit() activity.
+ It is useful for monitoring system behaviour and to track down
+ rogue processes that are spawning off processes and potentially
+ abusing the system.
+

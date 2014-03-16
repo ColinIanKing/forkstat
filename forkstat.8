@@ -1,0 +1,73 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH FORKSTAT 8 "15 March, 2014"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+forkstat \- a tool to show process fork/exec/exit activity.
+.br
+
+.SH SYNOPSIS
+.B forkstat
+.RI [ \-d ]
+.RI [ \-h ]
+.RI [ \-s ]
+.br
+
+.SH DESCRIPTION
+Forkstat is a program that logs process fork(), exec() and exit() activity.
+It is useful for monitoring system behaviour and to track down rogue processes
+that are spawning off processes and potentially abusing the system.
+
+Note that forkstat uses the Linux netlink connector to gather process activity
+and this may miss events if the system is overly busy. Netlink connector also requires
+root privilege.
+
+Forkstat will display several columns of process related information:
+.TS
+l lw(3i).
+\fBTitle	Description\fR
+Time	When the fork/exec/exit event occurred.
+Event	Type of event.
+PID	Process or thread ID.
+Info	Parent or child if a fork, or exit value.
+Duration	On exit, the duration the command ran for in seconds.
+Command	The process name.
+.TE
+.SH OPTIONS
+forkstat options are as follow:
+.TP
+.B \-d
+strip off the directory path from the process name.
+.TP
+.B \-h
+show brief help summary.
+.TP
+.B \-s
+show short process name information.
+.SH EXAMPLES
+.LP
+Show process activity with short process names and directory base path stripped
+off:
+.RS 8
+forkstat -s -d
+.RE
+.SH SEE ALSO
+.BR vmstat (8)
+.SH AUTHOR
+forkstat was written by Colin King <colin.king@canonical.com>
+.PP
+This manual page was written by Colin King <colin.king@canonical.com>,
+for the Ubuntu project (but may be used by others).
