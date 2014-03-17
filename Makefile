@@ -1,6 +1,6 @@
-VERSION=0.01.02
+VERSION=0.01.03
 #
-# Version "Seeking Sucky Processes"
+# Version "Finding Faulty Forks"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
