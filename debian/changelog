@@ -1,3 +1,10 @@
+forkstat (0.01.02-1) unstable; urgency=low
+
+  * Makefile: bump version
+  * Correct debian copyright, set to GPL-2+
+
+ -- Colin King <colin.king@canonical.com>  Mon, 17 Mar 2014 18:57:22 +0000
+
 forkstat (0.01.01-1) unstable; urgency=low
 
   * Initial Debian release (Closes: #741926)
