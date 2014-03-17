@@ -15,8 +15,11 @@ forkstat.8.gz: forkstat.8
 	gzip -c $< > $@
 
 dist:
-	git archive --format=tar --prefix="forkstat-$(VERSION)/" V$(VERSION) | \
-		gzip > forkstat-$(VERSION).tar.gz
+	rm -rf forkstat-$(VERSION)
+	mkdir forkstat-$(VERSION)
+	cp Makefile forkstat.c forkstat.8 forkstat-$(VERSION)
+	tar -zcf forkstat-$(VERSION).tar.gz forkstat-$(VERSION)
+	rm -rf forkstat-$(VERSION)
 
 clean:
 	rm -f forkstat forkstat.o forkstat.8.gz
