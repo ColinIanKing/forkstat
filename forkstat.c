@@ -75,7 +75,7 @@ static int row = 0;				/* tty row number */
 static proc_info_t no_info = {
 	NULL_PID,
 	"<unknown>",
-	{ 0, },
+	{ 0, 0 },
 	NULL,
 };
 
