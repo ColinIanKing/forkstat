@@ -465,24 +465,7 @@ static int monitor(const int sock)
 	print_heading();
 
 	while (!stop_recv) {
-		fd_set readfds;
-		int ret;
 		char __attribute__ ((aligned(NLMSG_ALIGNTO)))buf[4096];
-
-		FD_ZERO(&readfds);
-		FD_SET(sock, &readfds);
-		ret = select(sock+1, &readfds, NULL, NULL, NULL);
-		if (ret < 0) {
-			if (errno == EINTR)
-				break;
-			fprintf(stderr,"select: %s\n", strerror(errno));
-			return -1;
-		}
-
-		/* Time out, so measure some more samples */
-		if (ret == 0) {
-			continue;
-		}
 
 		if ((len = recv(sock, buf, sizeof(buf), 0)) == 0) {
 			return 0;
@@ -514,7 +497,6 @@ static int monitor(const int sock)
 				continue;
 
 			cn_msg = NLMSG_DATA(nlmsghdr);
-
 			if ((cn_msg->id.idx != CN_IDX_PROC) ||
 			    (cn_msg->id.val != CN_VAL_PROC))
 				continue;
@@ -640,14 +622,19 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Cannot show process activity with this kernel, netlink required.\n");
 		goto abort_sock;
 	}
+	/* Handle other failures */
+	if (sock < 0)
+		goto abort_sock;
+
 	if (netlink_listen(sock) < 0) {
 		fprintf(stderr, "Netlink listen failed: %s\n", strerror(errno));
-		goto abort_sock;
+		goto close_abort;
 	}
 
 	if (monitor(sock) == 0)
 		ret = EXIT_SUCCESS;
 
+close_abort:
 	close(sock);
 abort_sock:
 	proc_info_unload();
