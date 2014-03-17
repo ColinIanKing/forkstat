@@ -1,6 +1,6 @@
-VERSION=0.01.01
+VERSION=0.01.02
 #
-# Version "Probing Process Purification"
+# Version "Seeking Sucky Processes"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
