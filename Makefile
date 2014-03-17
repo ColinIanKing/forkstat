@@ -1,6 +1,6 @@
-VERSION=0.01.00
+VERSION=0.01.01
 #
-# Version "Deep Piercing Eyes"
+# Version "Probing Process Purification"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
