@@ -155,6 +155,7 @@ static char *proc_comm(const pid_t pid)
 		close(fd);
 		return NULL;
 	}
+	close(fd);
 	buffer[ret - 1] = '\0';
 	return strdup(buffer);
 }
