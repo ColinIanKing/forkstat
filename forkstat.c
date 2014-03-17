@@ -99,7 +99,7 @@ static int tty_height(void)
 	return 25;	/* else standard tty 80x25 */
 }
 
-void print_heading(void)
+static void print_heading(void)
 {
 	printf("Time     Event  PID  Info  Duration Process\n");
 }
