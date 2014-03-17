@@ -101,7 +101,7 @@ static int tty_height(void)
 
 void print_heading(void)
 {
-	printf("Time     Event  PID  Info  Duration Command\n");
+	printf("Time     Event  PID  Info  Duration Process\n");
 }
 
 /*
