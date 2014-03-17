@@ -1,3 +1,19 @@
+forkstat (0.01.01-1) unstable; urgency=low
+
+  * Initial Debian release (Closes: #741926)
+  * Make debian/rules executable
+  * Makefile: bump version
+  * Minor fix to man page
+  * Add more info about process naming in man page
+  * Add kernel thread detection
+  * Make print_heading static
+  * Change "Command" to "Process" to show process name
+  * Remove redundant select and fix error handling on netlink connect
+  * Fix fd lead on comm field read
+  * Fix gcc warning on older versions of gcc
+
+ -- Colin King <colin.king@canonical.com>  Mon, 17 Mar 2014 10:53:31 +0000
+
 forkstat (0.01.00-1) unstable; urgency=low
 
   * Initial release
