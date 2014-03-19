@@ -923,7 +923,7 @@ static int monitor(const int sock)
 void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
-	printf("usage: %s [-d|-D|-e|-h|-s|-S]\n", argv[0]);
+	printf("usage: %s [-d|-D|-e|-h|-s|-S|-q]\n", argv[0]);
 	printf("-d\tstrip off directory path from process name.\n");
 	printf("-D\tspecify run duration in seconds.\n");
 	printf("-e\tselect which events to monitor.\n");
