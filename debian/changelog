@@ -1,3 +1,20 @@
+forkstat (0.01.04-1) unstable; urgency=low
+
+  * Makefile: bump version
+  * Forgot to add -q option to mini help
+  * Add -q option to run quietly while gathering stats
+  * Ensure we have null at end of cmdline buffer
+  * Update mini help info
+  * Add -D option to specify duration of forkstat run
+  * Add -S statistics option
+  * comm should be checking the comm field and not the coredump field
+  * Add comm and core dump event handling and -e option
+  * Remove need to link with math library
+  * Fix proc names such as /sbin/init which were being truncated
+  * More optimal short cmdline truncation
+
+ -- Colin King <colin.king@canonical.com>  Wed, 19 Mar 2014 17:46:51 +0000
+
 forkstat (0.01.03-1) unstable; urgency=low
 
   * Makefile: bump version again
