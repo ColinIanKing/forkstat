@@ -920,10 +920,13 @@ static int monitor(const int sock)
 void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
-	printf("usage: %s [-d|-h|-s]\n", argv[0]);
+	printf("usage: %s [-d|-D|-e|-h|-s|-S]\n", argv[0]);
 	printf("-d\tstrip off directory path from process name.\n");
+	printf("-D\tspecify run duration in seconds.\n");
+	printf("-e\tselect which events to monitor.\n");
 	printf("-h\tshow this help.\n");
 	printf("-s\tshow short process name.\n");
+	printf("-S\tshow event statistics at end of the run.\n");
 }
 
 static int parse_ev(const char *arg)
