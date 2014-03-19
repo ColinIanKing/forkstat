@@ -469,6 +469,7 @@ static char *proc_cmdline(const pid_t pid)
 		return proc_comm(pid);
 	}
 	close(fd);
+	buffer[ret] = '\0';	/* Keeps coverity scan happy */
 
 	/*
 	 *  OPT_CMD_LONG option we get the full cmdline args
