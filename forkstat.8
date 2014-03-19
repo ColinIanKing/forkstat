@@ -22,6 +22,7 @@ forkstat \- a tool to show process fork/exec/exit activity.
 .SH SYNOPSIS
 .B forkstat
 .RI [ \-d ]
+.RI [ \-e ]
 .RI [ \-h ]
 .RI [ \-s ]
 .br
@@ -52,6 +53,19 @@ forkstat options are as follow:
 .B \-d
 strip off the directory path from the process name.
 .TP
+.B \-e
+specify events to trace as a comma seperated list. By defaut the fork, exec and exit 
+events are traced. Available events are:
+.TS
+l lw(3i).
+\fBEvent	Description\fR
+fork	forks (or clones)
+exec	execs
+exit	exits
+core	core dumps
+comm	process name changes in comm field
+.TE
+.TP
 .B \-h
 show brief help summary.
 .TP
@@ -63,6 +77,11 @@ Show process activity with short process names and directory base path stripped
 off:
 .RS 8
 forkstat -s -d
+.RE
+.LP
+Trace forks and core dumps only:
+.RS
+forkstat -e fork,core
 .RE
 .SH SEE ALSO
 .BR vmstat (8)

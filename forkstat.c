@@ -58,6 +58,13 @@
 #define OPT_CMD_SHORT		(0x00000002)
 #define OPT_CMD_DIRNAME_STRIP	(0x00000004)
 
+#define OPT_EV_FORK		(0x00000100)
+#define OPT_EV_EXEC		(0x00000200)
+#define OPT_EV_EXIT		(0x00000400)
+#define OPT_EV_CORE		(0x00000800)
+#define OPT_EV_COMM		(0x00001000)
+#define OPT_EV_MASK		(0x00001f00)
+
 /* /proc info cache */
 typedef struct proc_info {
 	pid_t	pid;		/* Process ID */
@@ -604,6 +611,7 @@ static int monitor(const int sock)
 			time_t now;
 			char when[10];
 			char duration[32];
+			char *comm;
 			proc_info_t const *info1, *info2;
 
 			if ((nlmsghdr->nlmsg_type == NLMSG_ERROR) ||
@@ -625,63 +633,101 @@ static int monitor(const int sock)
 
 			switch (proc_ev->what) {
 			case PROC_EVENT_FORK:
-				gettimeofday(&tv, NULL);
-				info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
-				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
-				if (info1 != NULL && info2 != NULL) {
+				if (opt_flags & OPT_EV_FORK) {
+					gettimeofday(&tv, NULL);
+					info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
+					info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
+					if (info1 != NULL && info2 != NULL) {
+						row_increment();
+						printf("%s fork %5d parent %8s %s%s%s\n",
+							when,
+							proc_ev->event_data.fork.parent_pid,
+							"",
+							info1->kernel_thread ? "[" : "",
+							info1->cmdline,
+							info1->kernel_thread ? "]" : "");
+						row_increment();
+						printf("%s fork %5d child  %8s %s%s%s\n",
+							when,
+							proc_ev->event_data.fork.child_pid,
+							"",
+							info1->kernel_thread ? "[" : "",
+							info2->cmdline,
+							info1->kernel_thread ? "]" : "");
+					}
+				}
+				break;
+			case PROC_EVENT_EXEC:
+				if (opt_flags & OPT_EV_EXEC) {
+					info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 					row_increment();
-					printf("%s fork %5d parent %8s %s%s%s\n",
+					printf("%s exec %5d        %8s %s%s%s\n",
 						when,
-						proc_ev->event_data.fork.parent_pid,
+						proc_ev->event_data.exec.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
 						info1->kernel_thread ? "]" : "");
+				}
+				break;
+			case PROC_EVENT_EXIT:
+				if (opt_flags & OPT_EV_EXIT) {
+					info1 = proc_info_get(proc_ev->event_data.exit.process_pid);
+					if (info1->start.tv_sec) {
+						double d1, d2;
+
+						gettimeofday(&tv, NULL);
+						d1 = timeval_to_double(&info1->start);
+						d2 = timeval_to_double(&tv);
+						snprintf(duration, sizeof(duration), "%8.3f", d2 - d1);
+					} else {
+						snprintf(duration, sizeof(duration), "unknown");
+					}
 					row_increment();
-					printf("%s fork %5d child  %8s %s%s%s\n",
+					printf("%s exit %5d  %5d %8s %s%s%s\n",
 						when,
-						proc_ev->event_data.fork.child_pid,
+						proc_ev->event_data.exit.process_pid,
+						proc_ev->event_data.exit.exit_code,
+						duration,
+						info1->kernel_thread ? "[" : "",
+						info1->cmdline,
+						info1->kernel_thread ? "]" : "");
+					if (proc_ev->event_data.exit.process_pid ==
+					   	proc_ev->event_data.exit.process_tgid)
+						proc_info_free(proc_ev->event_data.exit.process_pid);
+				}
+				break;
+			case PROC_EVENT_COREDUMP:
+				if (opt_flags & OPT_EV_CORE) {
+					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
+					row_increment();
+					printf("%s core %5d        %8s %s%s%s\n",
+						when,
+						proc_ev->event_data.exit.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
-						info2->cmdline,
+						info1->cmdline,
 						info1->kernel_thread ? "]" : "");
 				}
 				break;
-			case PROC_EVENT_EXEC:
-				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
-				row_increment();
-				printf("%s exec %5d        %8s %s%s%s\n",
-					when,
-					proc_ev->event_data.exec.process_pid,
-					"",
-					info1->kernel_thread ? "[" : "",
-					info1->cmdline,
-					info1->kernel_thread ? "]" : "");
-				break;
-			case PROC_EVENT_EXIT:
-				info1 = proc_info_get(proc_ev->event_data.exec.process_pid);
-				if (info1->start.tv_sec) {
-					double d1, d2;
+			case PROC_EVENT_COMM:
+				if (opt_flags & OPT_EV_COMM) {
+					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
+					comm = proc_comm(proc_ev->event_data.coredump.process_pid);
+					if (comm == NULL)
+						break;
+					row_increment();
 
-					gettimeofday(&tv, NULL);
-					d1 = timeval_to_double(&info1->start);
-					d2 = timeval_to_double(&tv);
-					snprintf(duration, sizeof(duration), "%8.3f", d2 - d1);
-				} else {
-					snprintf(duration, sizeof(duration), "unknown");
+					printf("%s comm %5d        %8s %s%s%s -> %s\n",
+						when,
+						proc_ev->event_data.exit.process_pid,
+						"",
+						info1->kernel_thread ? "[" : "",
+						info1->cmdline,
+						info1->kernel_thread ? "]" : "",
+						comm);
+					free(comm);
 				}
-				row_increment();
-				printf("%s exit %5d  %5d %8s %s%s%s\n",
-					when,
-					proc_ev->event_data.exit.process_pid,
-					proc_ev->event_data.exit.exit_code,
-					duration,
-					info1->kernel_thread ? "[" : "",
-					info1->cmdline,
-					info1->kernel_thread ? "]" : "");
-				if (proc_ev->event_data.exit.process_pid ==
-					   proc_ev->event_data.exit.process_tgid)
-					proc_info_free(proc_ev->event_data.exit.process_pid);
 				break;
 			default:
 				break;
@@ -704,6 +750,41 @@ void show_help(char *const argv[])
 	printf("-s\tshow short process name.\n");
 }
 
+static int parse_ev(const char *arg)
+{
+	char *str, *token, *saveptr = NULL;
+	struct ev_tok {
+		const char *token;
+		const int flag;
+	};
+
+	static const struct ev_tok ev_toks[] = {
+		{ "fork", OPT_EV_FORK },
+		{ "exec", OPT_EV_EXEC },
+		{ "exit", OPT_EV_EXIT },
+		{ "core", OPT_EV_CORE },
+		{ "comm", OPT_EV_COMM },
+		{ NULL  , 0 }
+	};
+
+	for (str = (char*)arg; (token = strtok_r(str, ",", &saveptr)) != NULL; str = NULL) {
+		int i;
+		bool found = false;
+
+		for (i = 0; ev_toks[i].token; i++) {
+			if (!strcmp(token, ev_toks[i].token)) {
+				opt_flags |= ev_toks[i].flag;
+				found = true;
+			}
+		}
+		if (!found) {
+			fprintf(stderr, "Unknown event '%s'.\n", token);
+			return -1;
+		}
+	}
+	return 0;
+}
+
 int main(int argc, char * const argv[])
 {
 	int sock = -1, ret = EXIT_FAILURE;
@@ -712,12 +793,16 @@ int main(int argc, char * const argv[])
 	siginterrupt(SIGINT, 1);
 
 	for (;;) {
-		int c = getopt(argc, argv, "dhs");
+		int c = getopt(argc, argv, "de:hs");
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'd':
 			opt_flags |= OPT_CMD_DIRNAME_STRIP;
+			break;
+		case 'e':
+			if (parse_ev(optarg) < 0)
+				exit(EXIT_FAILURE);
 			break;
 		case 'h':
 			show_help(argv);
@@ -731,6 +816,9 @@ int main(int argc, char * const argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	if ((opt_flags & OPT_EV_MASK) == 0)
+		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT);
 
 	if (geteuid() != 0) {
 		fprintf(stderr, "Need to run with root access.\n");
