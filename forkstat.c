@@ -123,6 +123,7 @@ static proc_info_t *proc_info[MAX_PIDS];	/* Proc hash table */
 static proc_stats_t *proc_stats[MAX_PIDS];	/* Proc stats hash table */
 static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
+static long int opt_duration = -1;		/* duration, < 0 means run forever */
 
 /* Default void no process info struct */
 static proc_info_t no_info = {
@@ -673,10 +674,10 @@ static int proc_info_load(void)
 }
 
 /*
- *  handle_sigint()
- *	catch SIGINT and flag a stop
+ *  handle_sigistop()
+ *	catch signal and flag a stop
  */
-static void handle_sigint(int dummy)
+static void handle_sigstop(int dummy)
 {
 	(void)dummy;
 	stop_recv = true;
@@ -763,7 +764,7 @@ static int monitor(const int sock)
 		}
 		if (len == -1) {
 			if (errno == EINTR) {
-				continue;
+				return 0;
 			} else {
 				fprintf(stderr,"recv: %s\n", strerror(errno));
 				return -1;
@@ -951,16 +952,24 @@ int main(int argc, char * const argv[])
 {
 	int sock = -1, ret = EXIT_FAILURE;
 
-	signal(SIGINT, &handle_sigint);
+	signal(SIGINT, &handle_sigstop);
+	signal(SIGALRM, &handle_sigstop);
 	siginterrupt(SIGINT, 1);
 
 	for (;;) {
-		int c = getopt(argc, argv, "de:hsS");
+		int c = getopt(argc, argv, "dD:e:hsS");
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'd':
 			opt_flags |= OPT_CMD_DIRNAME_STRIP;
+			break;
+		case 'D':
+			opt_duration = strtol(optarg, NULL, 10);
+			if (opt_duration <= 0) {
+				fprintf(stderr, "Illegal duration.\n");
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'e':
 			if (parse_ev(optarg) < 0)
@@ -1010,6 +1019,9 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Netlink listen failed: %s\n", strerror(errno));
 		goto close_abort;
 	}
+
+	if (opt_duration > 0)
+		alarm(opt_duration);
 
 	if (monitor(sock) == 0) {
 		ret = EXIT_SUCCESS;
