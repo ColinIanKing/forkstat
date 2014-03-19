@@ -1,6 +1,6 @@
-VERSION=0.01.03
+VERSION=0.01.04
 #
-# Version "Finding Faulty Forks"
+# Version "Freaky Fork Finder"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
