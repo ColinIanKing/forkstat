@@ -27,7 +27,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <libgen.h>
-
+#include <inttypes.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
@@ -57,6 +57,7 @@
 #define OPT_CMD_LONG		(0x00000001)
 #define OPT_CMD_SHORT		(0x00000002)
 #define OPT_CMD_DIRNAME_STRIP	(0x00000004)
+#define OPT_STATS		(0x00000008)
 
 #define OPT_EV_FORK		(0x00000100)
 #define OPT_EV_EXEC		(0x00000200)
@@ -64,6 +65,7 @@
 #define OPT_EV_CORE		(0x00000800)
 #define OPT_EV_COMM		(0x00001000)
 #define OPT_EV_MASK		(0x00001f00)
+#define OPT_EV_ALL		(OPT_EV_MASK)
 
 /* /proc info cache */
 typedef struct proc_info {
@@ -80,11 +82,45 @@ typedef struct {
 	size_t len;		/* Length */
 } kernel_task_info;
 
+enum {
+	STAT_FORK = 0,
+	STAT_EXEC,
+	STAT_EXIT,
+	STAT_CORE,
+	STAT_COMM,
+	STAT_LAST
+};
+
+typedef struct proc_stats {
+	char *name;
+	uint64_t count[STAT_LAST];
+	uint64_t total;
+	struct proc_stats *next;
+} proc_stats_t;
+
+typedef struct {
+	const char *event;
+	const char *label;
+	const int flag;
+	const int stat;
+} ev_map_t;
+
+static const ev_map_t ev_map[] = {
+	{ "fork", "Fork", OPT_EV_FORK, STAT_FORK },
+	{ "exec", "Exec", OPT_EV_EXEC, STAT_EXEC },
+	{ "exit", "Exit", OPT_EV_EXIT, STAT_EXIT },
+	{ "core", "Coredump", OPT_EV_CORE, STAT_CORE },
+	{ "comm", "Comm", OPT_EV_COMM, STAT_COMM },
+	{ "all",  ""	, OPT_EV_ALL,   0 },
+	{ NULL  ,  NULL,   0,           0 }
+};
+
 #define KERN_TASK_INFO(str)	{ str, sizeof(str) - 1 }
 
 static bool stop_recv;				/* sighandler stop flag */
 static bool sane_procs;				/* true if not inside a container */
 static proc_info_t *proc_info[MAX_PIDS];	/* Proc hash table */
+static proc_stats_t *proc_stats[MAX_PIDS];	/* Proc stats hash table */
 static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
 
@@ -96,6 +132,8 @@ static proc_info_t no_info = {
 	.start = { 0, 0 },
 	.next = NULL,
 };
+
+static proc_info_t *proc_info_get(pid_t pid);
 
 /*
  *  sane_proc_pid_info()
@@ -251,6 +289,138 @@ static inline double timeval_to_double(const struct timeval *tv)
 static inline int proc_info_hash(const pid_t pid)
 {
 	return pid % MAX_PIDS;
+}
+
+/*
+ *  proc_name_hash()
+ *	hash on proc name, from Aho, Sethi, Ullman, Compiling Techniques.
+ */
+static inline int proc_name_hash(const char *str)
+{
+	unsigned long h = 0;
+
+	while (*str) {
+		unsigned long g;
+		h = (h << 4) + (*str);
+		if (0 != (g = h & 0xf0000000)) {
+			h = h ^ (g >> 24);
+			h = h ^ g;
+		}
+		str++;
+	}
+
+	return h % MAX_PIDS;
+}
+
+static void proc_stats_account(pid_t pid, int event)
+{
+	int h;
+	char *name;
+	proc_stats_t *stats;
+	proc_info_t *info;
+
+	if (!(opt_flags & OPT_STATS))
+		return;
+
+	info = proc_info_get(pid);
+	if (info == &no_info)
+		return;
+
+	name = info->cmdline;
+	h = proc_name_hash(name);
+	stats = proc_stats[h];
+
+	while (stats) {
+		if (!strcmp(stats->name, name)) {
+			stats->count[event]++;
+			stats->total++;
+			return;
+		}
+	}
+	stats = calloc(1, sizeof(*stats));
+	if (stats == NULL)
+		return;		/* silently ignore */
+
+	stats->name = strdup(name);
+	if (stats->name == NULL) {
+		free(stats);
+		return;
+	}
+	stats->count[event]++;
+	stats->total++;
+	stats->next = proc_stats[h];
+	proc_stats[h] = stats;
+}
+
+int stats_cmp(const void *v1, const void *v2)
+{
+	proc_stats_t **s1 = (proc_stats_t **)v1;
+	proc_stats_t **s2 = (proc_stats_t **)v2;
+
+	return (*s2)->total - (*s1)->total;
+}
+
+void proc_stats_report(void)
+{
+	int i;
+	int n = 0;
+	proc_stats_t *stats, **sorted;
+
+	if (!(opt_flags & OPT_STATS))
+		return;
+
+	for (i = 0; i < MAX_PIDS; i++)
+		for (stats = proc_stats[i]; stats; stats = stats->next)
+			n++;
+
+	if (!n) {
+		printf("\nNo statistics gathered.\n");
+		return;
+	}
+
+	printf("\n");
+	for (i = 0; i < STAT_LAST; i++)
+		printf("%8s ", ev_map[i].label);
+	printf("   Total Process\n");
+
+	sorted = calloc(n, sizeof(proc_stats_t *));
+	if (sorted == NULL) {
+		fprintf(stderr, "Cannot sort statistics, out of memory.\n");
+		return;
+	}
+
+	for (n = 0, i = 0; i < MAX_PIDS; i++)
+		for (stats = proc_stats[i]; stats; stats = stats->next)
+			sorted[n++] = stats;
+
+	qsort(sorted, n, sizeof(proc_stats_t *), stats_cmp);
+	for (i = 0; i < n; i++) {
+		int j;
+		stats = sorted[i];
+
+		for (j = 0; j < STAT_LAST; j++)
+			printf("%8" PRIu64 " ", stats->count[j]);
+		printf("%8" PRIu64 " %s\n", stats->total, stats->name);
+	}
+	free(sorted);
+}
+
+void proc_stats_free(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_PIDS; i++) {
+		proc_stats_t *stats = proc_stats[i];
+
+		while (stats) {
+			proc_stats_t *next = stats->next;
+
+			free(stats->name);
+			free(stats);
+
+			stats = next;
+		}
+	}
 }
 
 /*
@@ -633,6 +803,7 @@ static int monitor(const int sock)
 
 			switch (proc_ev->what) {
 			case PROC_EVENT_FORK:
+				proc_stats_account(proc_ev->event_data.fork.parent_pid, STAT_FORK);
 				if (opt_flags & OPT_EV_FORK) {
 					gettimeofday(&tv, NULL);
 					info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
@@ -658,6 +829,7 @@ static int monitor(const int sock)
 				}
 				break;
 			case PROC_EVENT_EXEC:
+				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_EXEC);
 				if (opt_flags & OPT_EV_EXEC) {
 					info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 					row_increment();
@@ -671,6 +843,7 @@ static int monitor(const int sock)
 				}
 				break;
 			case PROC_EVENT_EXIT:
+				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (opt_flags & OPT_EV_EXIT) {
 					info1 = proc_info_get(proc_ev->event_data.exit.process_pid);
 					if (info1->start.tv_sec) {
@@ -698,6 +871,7 @@ static int monitor(const int sock)
 				}
 				break;
 			case PROC_EVENT_COREDUMP:
+				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (opt_flags & OPT_EV_CORE) {
 					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
 					row_increment();
@@ -711,6 +885,7 @@ static int monitor(const int sock)
 				}
 				break;
 			case PROC_EVENT_COMM:
+				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (opt_flags & OPT_EV_COMM) {
 					info1 = proc_info_get(proc_ev->event_data.comm.process_pid);
 					comm = proc_comm(proc_ev->event_data.coredump.process_pid);
@@ -753,27 +928,14 @@ void show_help(char *const argv[])
 static int parse_ev(const char *arg)
 {
 	char *str, *token, *saveptr = NULL;
-	struct ev_tok {
-		const char *token;
-		const int flag;
-	};
-
-	static const struct ev_tok ev_toks[] = {
-		{ "fork", OPT_EV_FORK },
-		{ "exec", OPT_EV_EXEC },
-		{ "exit", OPT_EV_EXIT },
-		{ "core", OPT_EV_CORE },
-		{ "comm", OPT_EV_COMM },
-		{ NULL  , 0 }
-	};
 
 	for (str = (char*)arg; (token = strtok_r(str, ",", &saveptr)) != NULL; str = NULL) {
 		int i;
 		bool found = false;
 
-		for (i = 0; ev_toks[i].token; i++) {
-			if (!strcmp(token, ev_toks[i].token)) {
-				opt_flags |= ev_toks[i].flag;
+		for (i = 0; ev_map[i].event; i++) {
+			if (!strcmp(token, ev_map[i].event)) {
+				opt_flags |= ev_map[i].flag;
 				found = true;
 			}
 		}
@@ -793,7 +955,7 @@ int main(int argc, char * const argv[])
 	siginterrupt(SIGINT, 1);
 
 	for (;;) {
-		int c = getopt(argc, argv, "de:hs");
+		int c = getopt(argc, argv, "de:hsS");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -810,6 +972,9 @@ int main(int argc, char * const argv[])
 		case 's':
 			opt_flags &= ~OPT_CMD_LONG;
 			opt_flags |= OPT_CMD_SHORT;
+			break;
+		case 'S':
+			opt_flags |= OPT_STATS;
 			break;
 		default:
 			show_help(argv);
@@ -846,13 +1011,16 @@ int main(int argc, char * const argv[])
 		goto close_abort;
 	}
 
-	if (monitor(sock) == 0)
+	if (monitor(sock) == 0) {
 		ret = EXIT_SUCCESS;
+		proc_stats_report();
+	}
 
 close_abort:
 	close(sock);
 abort_sock:
 	proc_info_unload();
+	proc_stats_free();
 
 	exit(ret);
 }
