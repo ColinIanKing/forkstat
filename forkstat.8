@@ -31,7 +31,8 @@ forkstat \- a tool to show process fork/exec/exit activity.
 .br
 
 .SH DESCRIPTION
-Forkstat is a program that logs process fork(), exec() and exit() activity.
+Forkstat is a program that logs process fork(), exec(), exit(), coredump and
+process name change activity.
 It is useful for monitoring system behaviour and to track down rogue processes
 that are spawning off processes and potentially abusing the system.
 
@@ -57,7 +58,7 @@ forkstat options are as follow:
 strip off the directory path from the process name.
 .TP
 .B \-D seconds
-specify duration in seconds to run forkstat
+specify duration in seconds to run forkstat.
 .TP
 .B \-e
 specify events to trace as a comma seperated list. By default the fork, exec and exit 
@@ -86,8 +87,7 @@ show event statistics.
 run quietly and enable the \-S option.
 .SH EXAMPLES
 .LP
-Show process activity with short process names and directory base path stripped
-off:
+Show process activity with short process names and directory base path stripped off:
 .RS 8
 forkstat -s -d
 .RE
