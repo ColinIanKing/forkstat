@@ -58,6 +58,7 @@
 #define OPT_CMD_SHORT		(0x00000002)
 #define OPT_CMD_DIRNAME_STRIP	(0x00000004)
 #define OPT_STATS		(0x00000008)
+#define OPT_QUIET		(0x00000010)
 
 #define OPT_EV_FORK		(0x00000100)
 #define OPT_EV_EXEC		(0x00000200)
@@ -256,6 +257,9 @@ static int tty_height(void)
 
 static void print_heading(void)
 {
+	if (opt_flags & OPT_QUIET)
+		return;
+
 	printf("Time     Event  PID  Info  Duration Process\n");
 }
 
@@ -806,10 +810,10 @@ static int monitor(const int sock)
 			switch (proc_ev->what) {
 			case PROC_EVENT_FORK:
 				proc_stats_account(proc_ev->event_data.fork.parent_pid, STAT_FORK);
-				if (opt_flags & OPT_EV_FORK) {
-					gettimeofday(&tv, NULL);
-					info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
-					info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
+				gettimeofday(&tv, NULL);
+				info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
+				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_FORK)) {
 					if (info1 != NULL && info2 != NULL) {
 						row_increment();
 						printf("%s fork %5d parent %8s %s%s%s\n",
@@ -832,8 +836,8 @@ static int monitor(const int sock)
 				break;
 			case PROC_EVENT_EXEC:
 				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_EXEC);
-				if (opt_flags & OPT_EV_EXEC) {
-					info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
+				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
 					printf("%s exec %5d        %8s %s%s%s\n",
 						when,
@@ -846,7 +850,7 @@ static int monitor(const int sock)
 				break;
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
-				if (opt_flags & OPT_EV_EXIT) {
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
 					info1 = proc_info_get(proc_ev->event_data.exit.process_pid);
 					if (info1->start.tv_sec) {
 						double d1, d2;
@@ -867,14 +871,12 @@ static int monitor(const int sock)
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
 						info1->kernel_thread ? "]" : "");
-					if (proc_ev->event_data.exit.process_pid ==
-					   	proc_ev->event_data.exit.process_tgid)
-						proc_info_free(proc_ev->event_data.exit.process_pid);
 				}
+				proc_info_free(proc_ev->event_data.exit.process_pid);
 				break;
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
-				if (opt_flags & OPT_EV_CORE) {
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
 					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
 					row_increment();
 					printf("%s core %5d        %8s %s%s%s\n",
@@ -888,7 +890,7 @@ static int monitor(const int sock)
 				break;
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
-				if (opt_flags & OPT_EV_COMM) {
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
 					info1 = proc_info_get(proc_ev->event_data.comm.process_pid);
 					comm = proc_comm(proc_ev->event_data.coredump.process_pid);
 					if (comm == NULL)
@@ -928,6 +930,7 @@ void show_help(char *const argv[])
 	printf("-h\tshow this help.\n");
 	printf("-s\tshow short process name.\n");
 	printf("-S\tshow event statistics at end of the run.\n");
+	printf("-q\trun quietly and enable -S option.\n");
 }
 
 static int parse_ev(const char *arg)
@@ -961,7 +964,7 @@ int main(int argc, char * const argv[])
 	siginterrupt(SIGINT, 1);
 
 	for (;;) {
-		int c = getopt(argc, argv, "dD:e:hsS");
+		int c = getopt(argc, argv, "dD:e:hsSq");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -988,6 +991,9 @@ int main(int argc, char * const argv[])
 			break;
 		case 'S':
 			opt_flags |= OPT_STATS;
+			break;
+		case 'q':
+			opt_flags |= OPT_QUIET;
 			break;
 		default:
 			show_help(argv);
