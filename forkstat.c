@@ -712,7 +712,7 @@ static int monitor(const int sock)
 				break;
 			case PROC_EVENT_COMM:
 				if (opt_flags & OPT_EV_COMM) {
-					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
+					info1 = proc_info_get(proc_ev->event_data.comm.process_pid);
 					comm = proc_comm(proc_ev->event_data.coredump.process_pid);
 					if (comm == NULL)
 						break;
