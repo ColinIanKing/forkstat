@@ -265,7 +265,7 @@ static char *proc_comm(const pid_t pid)
 		return NULL;
 	}
 	close(fd);
-	buffer[ret - 1] = '\0';
+	buffer[ret - 1] = '\0';		/* remove trailing '\n' */
 	return strdup(buffer);
 }
 
@@ -307,8 +307,10 @@ static char *proc_cmdline(const pid_t pid)
 	 */
 	if (opt_flags & OPT_CMD_SHORT) {
 		for (ptr = buffer; *ptr && (ptr < buffer + ret); ptr++) {
-			if (*ptr == ' ')
+			if (*ptr == ' ') {
 				*ptr = '\0';
+				break;
+			}
 		}
 	}
 
