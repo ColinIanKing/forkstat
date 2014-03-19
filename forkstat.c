@@ -285,22 +285,24 @@ static char *proc_cmdline(const pid_t pid)
 		return proc_comm(pid);
 	}
 
+	memset(buffer, 0, sizeof(buffer));
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
 		close(fd);
 		return proc_comm(pid);
 	}
 	close(fd);
-	buffer[ret] = '\0';
 
 	/*
 	 *  OPT_CMD_LONG option we get the full cmdline args
 	 */
 	if (opt_flags & OPT_CMD_LONG) {
-		for (ptr = buffer; ptr < buffer + ret - 1; ptr++) {
-			if (*ptr == '\0')
+		for (ptr = buffer; ptr < buffer + ret; ptr++) {
+			if (*ptr == '\0') {
+				if (*(ptr + 1) == '\0')
+					break;
 				*ptr = ' ';
+			}
 		}
-		*ptr = '\0';
 	}
 	/*
 	 *  OPT_CMD_SHORT option we discard anything after a space
