@@ -9,7 +9,7 @@ BINDIR=/usr/bin
 MANDIR=/usr/share/man/man8
 
 forkstat: forkstat.o
-	$(CC) $(CFLAGS) $< -lm -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 forkstat.8.gz: forkstat.8
 	gzip -c $< > $@
