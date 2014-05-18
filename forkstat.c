@@ -645,8 +645,11 @@ static void proc_thread_info_add(pid_t pid)
 
 	while ((dirent = readdir(dir))) {
 		if (isdigit(dirent->d_name[0])) {
-			pid_t tpid = atoi(dirent->d_name);
-			if (tpid != pid)
+			pid_t tpid;
+
+			errno = 0;
+			tpid = (pid_t)strtol(dirent->d_name, NULL, 10);
+			if ((!errno) && (tpid != pid))
 				(void)proc_info_add(tpid, NULL);
 		}
 	}
@@ -668,9 +671,13 @@ static int proc_info_load(void)
 
 	while ((dirent = readdir(dir))) {
 		if (isdigit(dirent->d_name[0])) {
-			pid_t pid = atoi(dirent->d_name);
+			pid_t pid;
+
+			errno = 0;
+			pid = (pid_t)strtol(dirent->d_name, NULL, 10);
 			(void)proc_info_add(pid, NULL);
-			proc_thread_info_add(pid);
+			if (!errno)
+				proc_thread_info_add(pid);
 		}
 	}
 
