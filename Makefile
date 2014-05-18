@@ -1,4 +1,4 @@
-VERSION=0.01.04
+VERSION=0.01.05
 #
 # Version "Freaky Fork Finder"
 #
