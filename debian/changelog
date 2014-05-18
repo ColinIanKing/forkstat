@@ -1,3 +1,11 @@
+forkstat (0.01.05-1) unstable; urgency=low
+
+  * Makefile; bump version
+  * Use strtol rather than atoi to avoid any number parsing overflows or errors
+  * Minor clean up of man page
+
+ -- Colin King <colin.king@canonical.com>  Sun, 18 May 2014 23:45:54 +0100
+
 forkstat (0.01.04-1) unstable; urgency=low
 
   * Makefile: bump version
