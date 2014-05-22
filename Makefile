@@ -1,6 +1,6 @@
-VERSION=0.01.05
+VERSION=0.01.06
 #
-# Version "Freaky Fork Finder"
+# Version "Fumbling Fork Fink"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
