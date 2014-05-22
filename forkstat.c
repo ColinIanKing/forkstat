@@ -45,6 +45,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 
+#include <linux/version.h>
 #include <linux/connector.h>
 #include <linux/netlink.h>
 #include <linux/cn_proc.h>
@@ -815,6 +816,7 @@ static int monitor(const int sock)
 				tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 			switch (proc_ev->what) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			case PROC_EVENT_FORK:
 				proc_stats_account(proc_ev->event_data.fork.parent_pid, STAT_FORK);
 				gettimeofday(&tv, NULL);
@@ -881,6 +883,8 @@ static int monitor(const int sock)
 				}
 				proc_info_free(proc_ev->event_data.exit.process_pid);
 				break;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
@@ -895,6 +899,8 @@ static int monitor(const int sock)
 						info1->kernel_thread ? "]" : "");
 				}
 				break;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,1,0)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
@@ -915,6 +921,7 @@ static int monitor(const int sock)
 					free(comm);
 				}
 				break;
+#endif
 			default:
 				break;
 			}
