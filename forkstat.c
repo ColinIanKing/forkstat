@@ -84,29 +84,30 @@ typedef struct {
 	size_t len;		/* Length */
 } kernel_task_info;
 
-enum {
+typedef enum {
 	STAT_FORK = 0,
 	STAT_EXEC,
 	STAT_EXIT,
 	STAT_CORE,
 	STAT_COMM,
 	STAT_LAST
-};
+} event_t;
 
 typedef struct proc_stats {
-	char *name;
-	uint64_t count[STAT_LAST];
-	uint64_t total;
-	struct proc_stats *next;
+	char *name;		/* Process name */
+	uint64_t count[STAT_LAST]; /* Tally count */
+	uint64_t total;		/* Tally count total of all counts */
+	struct proc_stats *next;/* Next one in list */
 } proc_stats_t;
 
 typedef struct {
-	const char *event;
-	const char *label;
-	const int flag;
-	const int stat;
+	const char *event;	/* Event name */
+	const char *label;	/* Human readable label */
+	const int flag;		/* option flag */
+	const event_t stat;	/* stat enum */
 } ev_map_t;
 
+/* Mapping of event names to option flags and event_t types */
 static const ev_map_t ev_map[] = {
 	{ "fork", "Fork", OPT_EV_FORK, STAT_FORK },
 	{ "exec", "Exec", OPT_EV_EXEC, STAT_EXEC },
@@ -181,7 +182,7 @@ static bool sane_proc_pid_info(void)
 
 /*
  *  pid_a_kernel_thread
- *
+ *	is a process a kernel thread?
  */
 static bool pid_a_kernel_thread(const char *task, const pid_t id)
 {
@@ -256,6 +257,10 @@ static int tty_height(void)
 	return 25;	/* else standard tty 80x25 */
 }
 
+/*
+ *  print_heading()
+ *	print heading to output
+ */
 static void print_heading(void)
 {
 	if (opt_flags & OPT_QUIET)
@@ -318,7 +323,7 @@ static inline int proc_name_hash(const char *str)
 	return h % MAX_PIDS;
 }
 
-static void proc_stats_account(pid_t pid, int event)
+static void proc_stats_account(const pid_t pid, const event_t event)
 {
 	int h;
 	char *name;
@@ -358,6 +363,10 @@ static void proc_stats_account(pid_t pid, int event)
 	proc_stats[h] = stats;
 }
 
+/*
+ *  stats_cmp()
+ *	compare stats total, used for sorting list
+ */
 int stats_cmp(const void *v1, const void *v2)
 {
 	proc_stats_t **s1 = (proc_stats_t **)v1;
@@ -366,6 +375,10 @@ int stats_cmp(const void *v1, const void *v2)
 	return (*s2)->total - (*s1)->total;
 }
 
+/*
+ *  proc_stats_report()
+ *	report event statistics
+ */
 void proc_stats_report(void)
 {
 	int i;
@@ -411,6 +424,10 @@ void proc_stats_report(void)
 	free(sorted);
 }
 
+/*
+ *  proc_stats_free()
+ *	free stats list
+ */
 void proc_stats_free(void)
 {
 	int i;
@@ -633,7 +650,7 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
  *  proc_thread_info_add()
  *	Add a processes' thread into proc cache
  */
-static void proc_thread_info_add(pid_t pid)
+static void proc_thread_info_add(const pid_t pid)
 {
 	DIR *dir;
 	struct dirent *dirent;
