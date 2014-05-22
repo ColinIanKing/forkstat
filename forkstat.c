@@ -922,7 +922,7 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
 					info1 = proc_info_get(proc_ev->event_data.comm.process_pid);
-					comm = proc_comm(proc_ev->event_data.coredump.process_pid);
+					comm = proc_comm(proc_ev->event_data.comm.process_pid);
 					if (comm == NULL)
 						break;
 					row_increment();
