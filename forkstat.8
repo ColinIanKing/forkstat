@@ -89,22 +89,22 @@ run quietly and enable the \-S option.
 .LP
 Show process activity with short process names and directory base path stripped off:
 .RS 8
-forkstat -s -d
+forkstat \-s \-d
 .RE
 .LP
 Trace forks and core dumps only:
-.RS
-forkstat -e fork,core
+.RS 8
+forkstat \-e fork,core
 .RE
 .LP
 Trace all events and print statistics at end:
-.RS
-forkstat -e all -S
+.RS 8
+forkstat \-e all \-S
 .RE
 .LP
 Trace all events for 10 minutes:
-.RS
-forkstat -e all -D 600
+.RS 8
+forkstat \-e all \-D 600
 .RE
 .SH SEE ALSO
 .BR vmstat (8)
