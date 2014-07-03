@@ -793,10 +793,22 @@ static int monitor(const int sock)
 			return 0;
 		}
 		if (len == -1) {
-			if (errno == EINTR) {
+			switch (errno) {
+			case EINTR:
 				return 0;
-			} else {
-				fprintf(stderr,"recv: %s\n", strerror(errno));
+			case ENOBUFS: {
+				time_t now;
+				struct tm tm;
+
+				(void)localtime_r(&now, &tm);
+				printf("%2.2d:%2.2d:%2.2d recv ----- "
+					"nobufs %8.8s (%s)\n",
+					tm.tm_hour, tm.tm_min, tm.tm_sec, "",
+					strerror(errno));
+				break;
+			}
+			default:
+				fprintf(stderr,"recv: %d %s\n", errno, strerror(errno));
 				return -1;
 			}
 		}
@@ -828,7 +840,6 @@ static int monitor(const int sock)
 
 			(void)time(&now);
 			(void)localtime_r(&now, &tm);
-
 			snprintf(when, sizeof(when), "%2.2d:%2.2d:%2.2d",
 				tm.tm_hour, tm.tm_min, tm.tm_sec);
 
