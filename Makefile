@@ -5,11 +5,13 @@ VERSION=0.01.08
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
 
+export DEB_BUILD_HARDENING=1
+
 BINDIR=/usr/bin
 MANDIR=/usr/share/man/man8
 
 forkstat: forkstat.o
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 forkstat.8.gz: forkstat.8
 	gzip -c $< > $@
