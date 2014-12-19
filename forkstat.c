@@ -372,7 +372,10 @@ int stats_cmp(const void *v1, const void *v2)
 	proc_stats_t **s1 = (proc_stats_t **)v1;
 	proc_stats_t **s2 = (proc_stats_t **)v2;
 
-	return (*s2)->total - (*s1)->total;
+	if ((*s2)->total == (*s1)->total)
+		return 0;
+
+	return ((*s2)->total > (*s1)->total) ? 1 : -1;
 }
 
 /*
@@ -779,7 +782,7 @@ static int netlink_listen(const int sock)
 
 /*
  *   monitor()
- *	monitor system activity and power consumption
+ *	monitor system activity
  */
 static int monitor(const int sock)
 {
