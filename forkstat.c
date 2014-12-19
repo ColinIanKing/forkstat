@@ -725,7 +725,8 @@ static int netlink_connect(void)
 	if ((sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR)) < 0) {
 		if (errno == EPROTONOSUPPORT)
 			return -EPROTONOSUPPORT;
-		fprintf(stderr, "Socket failed: %s\n", strerror(errno));
+		fprintf(stderr, "socket failed: errno=%d (%s)\n",
+			errno, strerror(errno));
 		return -1;
 	}
 
@@ -735,7 +736,8 @@ static int netlink_connect(void)
 	addr.nl_groups = CN_IDX_PROC;
 
 	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		fprintf(stderr, "Bind failed: %s\n", strerror(errno));
+		fprintf(stderr, "bind failed: errno=%d (%s)\n",
+			errno, strerror(errno));
 		(void)close(sock);
 		return -1;
 	}
@@ -808,7 +810,8 @@ static int monitor(const int sock)
 				break;
 			}
 			default:
-				fprintf(stderr,"recv: %d %s\n", errno, strerror(errno));
+				fprintf(stderr,"recv failed: errno=%d (%s)\n",
+					errno, strerror(errno));
 				return -1;
 			}
 		}
@@ -1068,7 +1071,8 @@ int main(int argc, char * const argv[])
 		goto abort_sock;
 
 	if (netlink_listen(sock) < 0) {
-		fprintf(stderr, "Netlink listen failed: %s\n", strerror(errno));
+		fprintf(stderr, "netlink listen failed: errno=%d (%s)\n",
+			errno, strerror(errno));
 		goto close_abort;
 	}
 
