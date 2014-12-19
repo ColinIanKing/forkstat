@@ -137,6 +137,71 @@ static proc_info_t no_info = {
 	.next = NULL,
 };
 
+/*
+ *  Attempt to catch a range of signals so
+ *  we can clean
+ */
+static const int signals[] = {
+	/* POSIX.1-1990 */
+#ifdef SIGHUP
+	SIGHUP,
+#endif
+#ifdef SIGINT
+	SIGINT,
+#endif
+#ifdef SIGQUIT
+	SIGQUIT,
+#endif
+#ifdef SIGILL
+	SIGILL,
+#endif
+#ifdef SIGABRT
+	SIGABRT,
+#endif
+#ifdef SIGFPE
+	SIGFPE,
+#endif
+#ifdef SIGSEGV
+	SIGSEGV,
+#endif
+#ifdef SIGTERM
+	SIGTERM,
+#endif
+#ifdef SIGUSR1
+	SIGUSR1,
+#endif
+#ifdef SIGUSR2
+	SIGUSR2,
+	/* POSIX.1-2001 */
+#endif
+#ifdef SIGBUS
+	SIGBUS,
+#endif
+#ifdef SIGXCPU
+	SIGXCPU,
+#endif
+#ifdef SIGXFSZ
+	SIGXFSZ,
+#endif
+	/* Linux various */
+#ifdef SIGIOT
+	SIGIOT,
+#endif
+#ifdef SIGSTKFLT
+	SIGSTKFLT,
+#endif
+#ifdef SIGPWR
+	SIGPWR,
+#endif
+#ifdef SIGINFO
+	SIGINFO,
+#endif
+#ifdef SIGVTALRM
+	SIGVTALRM,
+#endif
+	-1,
+};
+
 static proc_info_t *proc_info_get(pid_t pid);
 
 /*
@@ -707,10 +772,10 @@ static int proc_info_load(void)
 }
 
 /*
- *  handle_sigistop()
+ *  handle_sig()
  *	catch signal and flag a stop
  */
-static void handle_sigstop(int dummy)
+static void handle_sig(int dummy)
 {
 	(void)dummy;
 	stop_recv = true;
@@ -1021,11 +1086,8 @@ static int parse_ev(const char *arg)
 
 int main(int argc, char * const argv[])
 {
-	int sock = -1, ret = EXIT_FAILURE;
-
-	signal(SIGINT, &handle_sigstop);
-	signal(SIGALRM, &handle_sigstop);
-	siginterrupt(SIGINT, 1);
+	int i, sock = -1, ret = EXIT_FAILURE;
+	struct sigaction new_action;
 
 	for (;;) {
 		int c = getopt(argc, argv, "dD:e:hsSq");
@@ -1071,6 +1133,20 @@ int main(int argc, char * const argv[])
 	if (geteuid() != 0) {
 		fprintf(stderr, "Need to run with root access.\n");
 		goto abort_sock;
+	}
+
+	memset(&new_action, 0, sizeof(new_action));
+	for (i = 0; signals[i] != -1; i++) {
+		new_action.sa_handler = handle_sig;
+		sigemptyset(&new_action.sa_mask);
+		new_action.sa_flags = 0;
+
+		if (sigaction(signals[i], &new_action, NULL) < 0) {
+			fprintf(stderr, "sigaction failed: errno=%d (%s)\n",
+				errno, strerror(errno));
+			goto abort_sock;
+		}
+		(void)siginterrupt(signals[i], 1);
 	}
 
 	sane_procs = sane_proc_pid_info();
