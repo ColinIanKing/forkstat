@@ -865,7 +865,9 @@ static int monitor(const int sock)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			case PROC_EVENT_FORK:
 				proc_stats_account(proc_ev->event_data.fork.parent_pid, STAT_FORK);
-				gettimeofday(&tv, NULL);
+				if (gettimeofday(&tv, NULL) < 0) {
+					memset(&tv, 0, sizeof tv);
+				}
 				info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
 				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_FORK)) {
@@ -910,7 +912,9 @@ static int monitor(const int sock)
 					if (info1->start.tv_sec) {
 						double d1, d2;
 
-						gettimeofday(&tv, NULL);
+						if (gettimeofday(&tv, NULL) < 0) {
+							memset(&tv, 0, sizeof tv);
+						}
 						d1 = timeval_to_double(&info1->start);
 						d2 = timeval_to_double(&tv);
 						snprintf(duration, sizeof(duration), "%8.3f", d2 - d1);
