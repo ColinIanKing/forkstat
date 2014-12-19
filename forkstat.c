@@ -798,23 +798,31 @@ static int monitor(const int sock)
 			return 0;
 		}
 		if (len == -1) {
-			switch (errno) {
+			int err = errno;
+			switch (err) {
 			case EINTR:
 				return 0;
 			case ENOBUFS: {
 				time_t now;
 				struct tm tm;
 
-				(void)localtime_r(&now, &tm);
-				printf("%2.2d:%2.2d:%2.2d recv ----- "
-					"nobufs %8.8s (%s)\n",
-					tm.tm_hour, tm.tm_min, tm.tm_sec, "",
-					strerror(errno));
+				now = time(NULL);
+				if (now == ((time_t) -1)) {
+					printf("--:--:-- recv ----- "
+						"nobufs %8.8s (%s)\n",
+						"", strerror(err));
+				} else {
+					(void)localtime_r(&now, &tm);
+					printf("%2.2d:%2.2d:%2.2d recv ----- "
+						"nobufs %8.8s (%s)\n",
+						tm.tm_hour, tm.tm_min, tm.tm_sec, "",
+						strerror(err));
+				}
 				break;
 			}
 			default:
 				fprintf(stderr,"recv failed: errno=%d (%s)\n",
-					errno, strerror(errno));
+					err, strerror(err));
 				return -1;
 			}
 		}
@@ -844,10 +852,14 @@ static int monitor(const int sock)
 
 			proc_ev = (struct proc_event *)cn_msg->data;
 
-			(void)time(&now);
-			(void)localtime_r(&now, &tm);
-			snprintf(when, sizeof(when), "%2.2d:%2.2d:%2.2d",
-				tm.tm_hour, tm.tm_min, tm.tm_sec);
+			now = time(NULL);
+			if (now == ((time_t) -1)) {
+				snprintf(when, sizeof(when), "--:--:--");
+			} else {
+				(void)localtime_r(&now, &tm);
+				snprintf(when, sizeof(when), "%2.2d:%2.2d:%2.2d",
+					tm.tm_hour, tm.tm_min, tm.tm_sec);
+			}
 
 			switch (proc_ev->what) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
