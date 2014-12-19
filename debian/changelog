@@ -1,3 +1,19 @@
+forkstat (0.01.09-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Fix spin loop on stats list, add more exit points on signal
+  * Remove siginterrupt
+  * Debian: update standards version
+  * Add better signal handling
+  * Handle gettimeofday failures
+  * Handle time() errors
+  * Handle -ve differences in totals
+  * Improve error reporting
+  * Ignore returns from close(), fclose()
+  * Remove trailing . from forkstat man page title
+
+ -- Colin King <colin.king@canonical.com>  Fri, 19 Dec 2014 15:19:00 +0000
+
 forkstat (0.01.08-1) unstable; urgency=medium
 
   * Add deb build hardening
