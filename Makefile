@@ -1,4 +1,4 @@
-VERSION=0.01.08
+VERSION=0.01.09
 #
 # Version "Frantic Forking Finder"
 #
