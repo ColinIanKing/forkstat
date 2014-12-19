@@ -120,7 +120,7 @@ static const ev_map_t ev_map[] = {
 
 #define KERN_TASK_INFO(str)	{ str, sizeof(str) - 1 }
 
-static bool stop_recv;				/* sighandler stop flag */
+static volatile bool stop_recv;			/* sighandler stop flag */
 static bool sane_procs;				/* true if not inside a container */
 static proc_info_t *proc_info[MAX_PIDS];	/* Proc hash table */
 static proc_stats_t *proc_stats[MAX_PIDS];	/* Proc stats hash table */
@@ -412,6 +412,7 @@ static void proc_stats_account(const pid_t pid, const event_t event)
 			stats->total++;
 			return;
 		}
+		stats = stats->next;
 	}
 	stats = calloc(1, sizeof(*stats));
 	if (stats == NULL)
@@ -905,6 +906,9 @@ static int monitor(const int sock)
 			char duration[32];
 			char *comm;
 			proc_info_t const *info1, *info2;
+
+			if (stop_recv)
+				break;
 
 			if ((nlmsghdr->nlmsg_type == NLMSG_ERROR) ||
 			    (nlmsghdr->nlmsg_type == NLMSG_NOOP))
