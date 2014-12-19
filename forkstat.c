@@ -1146,7 +1146,6 @@ int main(int argc, char * const argv[])
 				errno, strerror(errno));
 			goto abort_sock;
 		}
-		(void)siginterrupt(signals[i], 1);
 	}
 
 	sane_procs = sane_proc_pid_info();
