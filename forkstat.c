@@ -175,7 +175,7 @@ static bool sane_proc_pid_info(void)
 		}
 	}
 
-	fclose(fp);
+	(void)fclose(fp);
 
 	return ret;
 }
@@ -461,10 +461,10 @@ static char *proc_comm(const pid_t pid)
 		return NULL;
 	}
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
-		close(fd);
+		(void)close(fd);
 		return NULL;
 	}
-	close(fd);
+	(void)close(fd);
 	buffer[ret - 1] = '\0';		/* remove trailing '\n' */
 	return strdup(buffer);
 }
@@ -487,10 +487,10 @@ static char *proc_cmdline(const pid_t pid)
 
 	memset(buffer, 0, sizeof(buffer));
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
-		close(fd);
+		(void)close(fd);
 		return proc_comm(pid);
 	}
-	close(fd);
+	(void)close(fd);
 	buffer[ret] = '\0';	/* Keeps coverity scan happy */
 
 	/*
@@ -1081,7 +1081,7 @@ int main(int argc, char * const argv[])
 	}
 
 close_abort:
-	close(sock);
+	(void)close(sock);
 abort_sock:
 	proc_info_unload();
 	proc_stats_free();
