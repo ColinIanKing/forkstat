@@ -852,12 +852,12 @@ static int netlink_listen(const int sock)
  */
 static int monitor(const int sock)
 {
-	ssize_t len;
 	struct nlmsghdr *nlmsghdr;
 
 	print_heading();
 
 	while (!stop_recv) {
+		ssize_t len;
 		char __attribute__ ((aligned(NLMSG_ALIGNTO)))buf[4096];
 
 		if ((len = recv(sock, buf, sizeof(buf), 0)) == 0) {
