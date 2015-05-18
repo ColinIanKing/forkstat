@@ -69,6 +69,11 @@
 #define OPT_EV_MASK		(0x00001f00)
 #define OPT_EV_ALL		(OPT_EV_MASK)
 
+#ifndef LINUX_VERSION_CODE
+#define LINUX_VERSION_CODE KERNEL_VERSION(2,0,0)
+#endif
+
+
 /* /proc info cache */
 typedef struct proc_info {
 	pid_t	pid;		/* Process ID */
@@ -891,12 +896,17 @@ static int monitor(const int sock)
 			struct cn_msg *cn_msg;
 			struct proc_event *proc_ev;
 			struct tm tm;
-			struct timeval tv;
-			time_t now;
 			char when[10];
+			time_t now;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
+			struct timeval tv;
 			char duration[32];
-			char *comm;
 			proc_info_t const *info1, *info2;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,1,0)
+			char *comm;
+#endif
 
 			if (stop_recv)
 				break;
