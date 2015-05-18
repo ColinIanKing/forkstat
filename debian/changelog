@@ -1,3 +1,18 @@
+forkstat (0.01.10-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Makefile: add mascot in make dist rule
+  * Cleanup variable warnings with different values of LINUX_VERSION_CODE
+  * Make a few more functions static, somehow overlooked these
+  * Remove sig handling on SIGILL, SIGABRT, SIGBUS
+  * Reduce scope of variable len (fixes cppcheck style warning)
+  * Manual: update copyright info and date
+  * forkstat.c: update copyright year
+  * Makefile: Add copyright
+  * Add in forkstat svg mascot
+
+ -- Colin King <colin.king@canonical.com>  Mon, 18 May 2015 15:31:00 +0100
+
 forkstat (0.01.09-1) unstable; urgency=medium
 
   * Makefile: bump version
