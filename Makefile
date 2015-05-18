@@ -37,7 +37,7 @@ forkstat.8.gz: forkstat.8
 dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
-	cp Makefile forkstat.c forkstat.8 forkstat-$(VERSION)
+	cp -rp Makefile forkstat.c forkstat.8 mascot forkstat-$(VERSION)
 	tar -zcf forkstat-$(VERSION).tar.gz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
