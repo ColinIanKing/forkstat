@@ -424,7 +424,7 @@ static void proc_stats_account(const pid_t pid, const event_t event)
  *  stats_cmp()
  *	compare stats total, used for sorting list
  */
-int stats_cmp(const void *v1, const void *v2)
+static int stats_cmp(const void *v1, const void *v2)
 {
 	proc_stats_t **s1 = (proc_stats_t **)v1;
 	proc_stats_t **s2 = (proc_stats_t **)v2;
@@ -439,7 +439,7 @@ int stats_cmp(const void *v1, const void *v2)
  *  proc_stats_report()
  *	report event statistics
  */
-void proc_stats_report(void)
+static void proc_stats_report(void)
 {
 	int i;
 	int n = 0;
@@ -488,7 +488,7 @@ void proc_stats_report(void)
  *  proc_stats_free()
  *	free stats list
  */
-void proc_stats_free(void)
+static void proc_stats_free(void)
 {
 	int i;
 
@@ -1044,7 +1044,7 @@ static int monitor(const int sock)
  *  show_help()
  *	simple help
  */
-void show_help(char *const argv[])
+static void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
 	printf("usage: %s [-d|-D|-e|-h|-s|-S|-q]\n", argv[0]);
