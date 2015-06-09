@@ -997,17 +997,20 @@ static int monitor(const int sock)
 				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_FORK)) {
 					if (info1 != NULL && info2 != NULL) {
+						char *type = is_thread ? "clone" : "fork";
 						row_increment();
-						printf("%s fork %5d parent %8s %s%s%s\n",
+						printf("%s %-5.5s %5d parent %8s %s%s%s\n",
 							when,
-							proc_ev->event_data.fork.parent_pid,
+							type,
+							ppid,
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s fork %5d %-6.6s %8s %s%s%s\n",
+						printf("%s %-5.5s %5d %-6.6s %8s %s%s%s\n",
 							when,
+							type,
 							proc_ev->event_data.fork.child_pid,
 							is_thread ? "thread" : "child",
 							"",
@@ -1022,7 +1025,7 @@ static int monitor(const int sock)
 				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
-					printf("%s exec %5d        %8s %s%s%s\n",
+					printf("%s exec  %5d        %8s %s%s%s\n",
 						when,
 						proc_ev->event_data.exec.process_pid,
 						"",
@@ -1048,7 +1051,7 @@ static int monitor(const int sock)
 						snprintf(duration, sizeof(duration), "unknown");
 					}
 					row_increment();
-					printf("%s exit %5d  %5d %8s %s%s%s\n",
+					printf("%s exit  %5d  %5d %8s %s%s%s\n",
 						when,
 						proc_ev->event_data.exit.process_pid,
 						proc_ev->event_data.exit.exit_code,
@@ -1066,7 +1069,7 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
 					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
 					row_increment();
-					printf("%s core %5d        %8s %s%s%s\n",
+					printf("%s core  %5d        %8s %s%s%s\n",
 						when,
 						proc_ev->event_data.exit.process_pid,
 						"",
@@ -1086,7 +1089,7 @@ static int monitor(const int sock)
 						break;
 					row_increment();
 
-					printf("%s comm %5d        %8s %s%s%s -> %s\n",
+					printf("%s comm  %5d        %8s %s%s%s -> %s\n",
 						when,
 						proc_ev->event_data.exit.process_pid,
 						"",
