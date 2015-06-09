@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <getopt.h>
+#include <sched.h>
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -895,6 +896,34 @@ static int netlink_listen(const int sock)
 }
 
 /*
+ *   set_prioity
+ *	set high priority to try and get netlink activty
+ *	before short lived processes die
+ */
+static void set_priority(void)
+{
+	int max;
+	struct sched_param param;
+	int sched;
+
+#if defined(SCHED_DEADLINE)
+	sched = SCHED_DEADLINE;
+#elif defined(SCHED_SCHED_FIFO)
+	sched = SCHED_FIFO;
+#elif defined(SCHED_RR)
+	sched = SCHED_FIFO;
+#else
+	sched = SCHED_OTHER;	/* Oh well */
+#endif
+	if ((max = sched_get_priority_max(sched)) < 0)
+		return;
+
+	memset(&param, 0, sizeof(param));
+	param.sched_priority = max;
+	(void)sched_setscheduler(getpid(), sched, &param);
+}
+
+/*
  *   monitor()
  *	monitor system activity
  */
@@ -903,6 +932,7 @@ static int monitor(const int sock)
 	struct nlmsghdr *nlmsghdr;
 
 	print_heading();
+	set_priority();
 
 	while (!stop_recv) {
 		ssize_t len;
