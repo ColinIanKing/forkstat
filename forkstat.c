@@ -69,6 +69,10 @@
 #define OPT_EV_MASK		(0x00001f00)
 #define OPT_EV_ALL		(OPT_EV_MASK)
 
+#define	GOT_TGID		(0x01)
+#define GOT_PPID		(0x02)
+#define GOT_ALL			(GOT_TGID | GOT_PPID)
+
 #ifndef LINUX_VERSION_CODE
 #define LINUX_VERSION_CODE KERNEL_VERSION(2,0,0)
 #endif
@@ -160,9 +164,6 @@ static const int signals[] = {
 #ifdef SIGFPE
 	SIGFPE,
 #endif
-#ifdef SIGSEGV
-	SIGSEGV,
-#endif
 #ifdef SIGTERM
 	SIGTERM,
 #endif
@@ -199,6 +200,57 @@ static const int signals[] = {
 };
 
 static proc_info_t *proc_info_get(pid_t pid);
+
+/*
+ *  get_parent_pid()
+ *	get parent pid and set is_thread to true if process
+ *	not forked but a newly created thread
+ */
+static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
+{
+	FILE *fp;
+	char path[PATH_MAX];
+	char buffer[4096];
+	pid_t tgid = 0, ppid = 0;
+	unsigned int got = 0;
+
+	*is_thread = false;
+	snprintf(path, sizeof(path), "/proc/%u/status", pid);
+	if ((fp = fopen(path, "r")) == NULL)
+		return 0;
+
+	while (((got & GOT_ALL) != GOT_ALL) &&
+	       (fgets(buffer, sizeof(buffer), fp) != NULL)) {
+		if (!strncmp(buffer, "Tgid:", 5)) {
+			if (sscanf(buffer + 5, "%u", &tgid) == 1) {
+				got |= GOT_TGID;
+			} else {
+				tgid = 0;
+			}
+		}
+		if (!strncmp(buffer, "PPid:", 5)) {
+			if (sscanf(buffer + 5, "%u", &ppid) == 1) {
+				got |= GOT_PPID;
+			} else {
+				ppid = 0;
+			}
+		}
+	}
+	fclose(fp);
+
+	if ((got & GOT_ALL) == GOT_ALL) {
+		/*  TGID and PID are not the same if it is a thread */
+		if (tgid != pid) {
+			/* In this case, the parent is the TGID */
+			ppid = tgid;
+			*is_thread = true;
+		}
+	} else {
+		ppid = 0;
+	}
+
+	return ppid;
+}
 
 /*
  *  sane_proc_pid_info()
@@ -898,6 +950,8 @@ static int monitor(const int sock)
 			struct tm tm;
 			char when[10];
 			time_t now;
+			pid_t ppid;
+			bool is_thread;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			struct timeval tv;
@@ -938,7 +992,8 @@ static int monitor(const int sock)
 				if (gettimeofday(&tv, NULL) < 0) {
 					memset(&tv, 0, sizeof tv);
 				}
-				info1 = proc_info_get(proc_ev->event_data.fork.parent_pid);
+				ppid = get_parent_pid(proc_ev->event_data.fork.child_pid, &is_thread);
+				info1 = proc_info_get(ppid);
 				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_FORK)) {
 					if (info1 != NULL && info2 != NULL) {
@@ -951,9 +1006,10 @@ static int monitor(const int sock)
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s fork %5d child  %8s %s%s%s\n",
+						printf("%s fork %5d %-6.6s %8s %s%s%s\n",
 							when,
 							proc_ev->event_data.fork.child_pid,
+							is_thread ? "thread" : "child",
 							"",
 							info1->kernel_thread ? "[" : "",
 							info2->cmdline,
