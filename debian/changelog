@@ -1,3 +1,12 @@
+forkstat (0.01.11-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Try to run at high priority to capture fast activity
+  * Print "fork" or "clone" depending on what we deduced
+  * Add detection of thread creation rather
+
+ -- Colin King <colin.king@canonical.com>  Tue, 9 Jun 2015 19:15:00 +0100
+
 forkstat (0.01.10-1) unstable; urgency=medium
 
   * Makefile: bump version
