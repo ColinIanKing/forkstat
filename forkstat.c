@@ -416,25 +416,21 @@ static inline int proc_info_hash(const pid_t pid)
 	return pid % MAX_PIDS;
 }
 
+
 /*
  *  proc_name_hash()
- *	hash on proc name, from Aho, Sethi, Ullman, Compiling Techniques.
+ *	Hash a string, from Dan Bernstein comp.lang.c (xor version)
  */
 static inline int proc_name_hash(const char *str)
 {
-	unsigned long h = 0;
+	register int hash = 5381;
+	register int c;
 
-	while (*str) {
-		unsigned long g;
-		h = (h << 4) + (*str);
-		if (0 != (g = h & 0xf0000000)) {
-			h = h ^ (g >> 24);
-			h = h ^ g;
-		}
-		str++;
+	while ((c = *str++)) {
+		/* (hash * 33) ^ c */
+		hash = ((hash << 5) + hash) ^ c;
 	}
-
-	return h % MAX_PIDS;
+	return hash % MAX_PIDS;
 }
 
 static void proc_stats_account(const pid_t pid, const event_t event)
