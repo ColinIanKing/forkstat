@@ -1,3 +1,15 @@
+forkstat (0.01.12-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Add COPYING file to make dist
+  * Makefile: default to -O2
+  * Use strrok instead of strtok_r
+  * Add COPYING file
+  * Move next ptrs in structs to top to reduce cache thrashing
+  * Use more efficient hash function
+
+ -- Colin King <colin.king@canonical.com>  Thu, 12 Nov 2015 10:04:00 +0000
+
 forkstat (0.01.11-1) unstable; urgency=medium
 
   * Makefile: bump version
