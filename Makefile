@@ -21,7 +21,7 @@ VERSION=0.01.11
 # Version "Frantic Forking Finder"
 #
 
-CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"'
+CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"' -O2
 
 export DEB_BUILD_HARDENING=1
 
