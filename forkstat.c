@@ -1152,11 +1152,15 @@ static void show_help(char *const argv[])
 	printf("-q\trun quietly and enable -S option.\n");
 }
 
+/*
+ *  parse_ev()
+ *	parse event strings, turn into flag mask
+ */
 static int parse_ev(const char *arg)
 {
-	char *str, *token, *saveptr = NULL;
+	char *str, *token;
 
-	for (str = (char*)arg; (token = strtok_r(str, ",", &saveptr)) != NULL; str = NULL) {
+	for (str = (char*)arg; (token = strtok(str, ",")) != NULL; str = NULL) {
 		int i;
 		bool found = false;
 
