@@ -1228,7 +1228,7 @@ int main(int argc, char * const argv[])
 	}
 
 	if ((opt_flags & OPT_EV_MASK) == 0)
-		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT);
+		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT | OPT_EV_CLNE);
 
 	if (geteuid() != 0) {
 		fprintf(stderr, "Need to run with root access.\n");
