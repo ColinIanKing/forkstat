@@ -421,10 +421,10 @@ static inline int proc_info_hash(const pid_t pid)
  *  proc_name_hash()
  *	Hash a string, from Dan Bernstein comp.lang.c (xor version)
  */
-static inline int proc_name_hash(const char *str)
+static inline unsigned int proc_name_hash(const char *str)
 {
-	register int hash = 5381;
-	register int c;
+	register unsigned int hash = 5381;
+	register unsigned int c;
 
 	while ((c = *str++)) {
 		/* (hash * 33) ^ c */
@@ -435,7 +435,7 @@ static inline int proc_name_hash(const char *str)
 
 static void proc_stats_account(const pid_t pid, const event_t event)
 {
-	int h;
+	unsigned int h;
 	char *name;
 	proc_stats_t *stats;
 	proc_info_t *info;
