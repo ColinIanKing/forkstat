@@ -67,7 +67,8 @@
 #define OPT_EV_EXIT		(0x00000400)
 #define OPT_EV_CORE		(0x00000800)
 #define OPT_EV_COMM		(0x00001000)
-#define OPT_EV_MASK		(0x00001f00)
+#define OPT_EV_CLNE		(0x00002000)
+#define OPT_EV_MASK		(0x00003f00)
 #define OPT_EV_ALL		(OPT_EV_MASK)
 
 #define	GOT_TGID		(0x01)
@@ -100,6 +101,7 @@ typedef enum {
 	STAT_EXIT,
 	STAT_CORE,
 	STAT_COMM,
+	STAT_CLNE,
 	STAT_LAST
 } event_t;
 
@@ -124,6 +126,7 @@ static const ev_map_t ev_map[] = {
 	{ "exit", "Exit", OPT_EV_EXIT, STAT_EXIT },
 	{ "core", "Coredump", OPT_EV_CORE, STAT_CORE },
 	{ "comm", "Comm", OPT_EV_COMM, STAT_COMM },
+	{ "clone","Clone", OPT_EV_CLNE, STAT_CLNE },
 	{ "all",  ""	, OPT_EV_ALL,   0 },
 	{ NULL  ,  NULL,   0,           0 }
 };
@@ -1014,14 +1017,17 @@ static int monitor(const int sock)
 			switch (proc_ev->what) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			case PROC_EVENT_FORK:
-				proc_stats_account(proc_ev->event_data.fork.parent_pid, STAT_FORK);
+				ppid = get_parent_pid(proc_ev->event_data.fork.child_pid, &is_thread);
+				proc_stats_account(proc_ev->event_data.fork.parent_pid,
+					is_thread ? STAT_CLNE : STAT_FORK);
 				if (gettimeofday(&tv, NULL) < 0) {
 					memset(&tv, 0, sizeof tv);
 				}
-				ppid = get_parent_pid(proc_ev->event_data.fork.child_pid, &is_thread);
 				info1 = proc_info_get(ppid);
 				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
-				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_FORK)) {
+				if (!(opt_flags & OPT_QUIET) &&
+					(((opt_flags & OPT_EV_FORK) && !is_thread) ||
+					 ((opt_flags & OPT_EV_CLNE) && is_thread))) {
 					if (info1 != NULL && info2 != NULL) {
 						char *type = is_thread ? "clone" : "fork";
 						row_increment();

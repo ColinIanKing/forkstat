@@ -66,11 +66,12 @@ events are traced. Available events are:
 .TS
 l lw(3i).
 \fBEvent	Description\fR
-fork	forks (or clones)
+fork	forks
 exec	execs
 exit	exits
 core	core dumps
 comm	process name changes in comm field
+clone	clone (normally on thread creation)
 all	all the events above
 .TE
 .TP
@@ -105,6 +106,11 @@ forkstat \-e all \-S
 Trace all events for 10 minutes:
 .RS 8
 forkstat \-e all \-D 600
+.RE
+.LP
+Trace clones for 1 minute:
+.RS 8
+forkstat \-e clone \-D 60
 .RE
 .SH SEE ALSO
 .BR vmstat (8)
