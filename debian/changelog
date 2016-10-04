@@ -2,7 +2,7 @@ forkstat (0.01.14-1) unstable; urgency=medium
 
   * Makefile: bump version
   * debian/control: update Standards-Version to 3.9.8
-  * debian/rules: make build reproducable (Closes: #833439)
+  * debian/rules: make build reproducible (Closes: #833439)
   * Update copyright year to 2016
 
  -- Colin King <colin.king@canonical.com>  Thu, 11 Aug 2016 10:06:44 +0100
