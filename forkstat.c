@@ -240,7 +240,7 @@ static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
 			}
 		}
 	}
-	fclose(fp);
+	(void)fclose(fp);
 
 	if ((got & GOT_ALL) == GOT_ALL) {
 		/*  TGID and PID are not the same if it is a thread */
