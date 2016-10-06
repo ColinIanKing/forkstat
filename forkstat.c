@@ -414,7 +414,7 @@ static inline double timeval_to_double(const struct timeval *tv)
  *  proc_info_hash()
  * 	hash on PID
  */
-static inline int proc_info_hash(const pid_t pid)
+static inline size_t proc_info_hash(const pid_t pid)
 {
 	return pid % MAX_PIDS;
 }
@@ -498,8 +498,7 @@ static int stats_cmp(const void *v1, const void *v2)
  */
 static void proc_stats_report(void)
 {
-	int i;
-	int n = 0;
+	size_t i, n = 0;
 	proc_stats_t *stats, **sorted;
 
 	if (!(opt_flags & OPT_STATS))
@@ -547,7 +546,7 @@ static void proc_stats_report(void)
  */
 static void proc_stats_free(void)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < MAX_PIDS; i++) {
 		proc_stats_t *stats = proc_stats[i];
@@ -646,7 +645,7 @@ static char *proc_cmdline(const pid_t pid)
  */
 static proc_info_t *proc_info_get(const pid_t pid)
 {
-	int i = proc_info_hash(pid);
+	size_t i = proc_info_hash(pid);
 	proc_info_t *info = proc_info[i];
 
 	while (info) {
@@ -663,7 +662,7 @@ static proc_info_t *proc_info_get(const pid_t pid)
  */
 static void proc_info_free(const pid_t pid)
 {
-	int i = proc_info_hash(pid);
+	size_t i = proc_info_hash(pid);
 	proc_info_t *info = proc_info[i];
 
 	while (info) {
@@ -683,7 +682,7 @@ static void proc_info_free(const pid_t pid)
  */
 static void proc_info_unload(void)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < MAX_PIDS; i++) {
 		proc_info_t *info = proc_info[i];
@@ -723,7 +722,7 @@ static proc_info_t const *proc_info_update(const pid_t pid)
  */
 static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 {
-	int i = proc_info_hash(pid);
+	size_t i = proc_info_hash(pid);
 	proc_info_t *info;
 	char *cmdline;
 
@@ -1167,7 +1166,7 @@ static int parse_ev(const char *arg)
 	char *str, *token;
 
 	for (str = (char*)arg; (token = strtok(str, ",")) != NULL; str = NULL) {
-		int i;
+		size_t i;
 		bool found = false;
 
 		for (i = 0; ev_map[i].event; i++) {
@@ -1186,7 +1185,8 @@ static int parse_ev(const char *arg)
 
 int main(int argc, char * const argv[])
 {
-	int i, sock = -1, ret = EXIT_FAILURE;
+	size_t i;
+	int sock = -1, ret = EXIT_FAILURE;
 	struct sigaction new_action;
 
 	for (;;) {
