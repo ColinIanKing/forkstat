@@ -483,8 +483,8 @@ static void proc_stats_account(const pid_t pid, const event_t event)
  */
 static int stats_cmp(const void *v1, const void *v2)
 {
-	proc_stats_t **s1 = (proc_stats_t **)v1;
-	proc_stats_t **s2 = (proc_stats_t **)v2;
+	proc_stats_t *const *s1 = (proc_stats_t *const *)v1;
+	proc_stats_t *const *s2 = (proc_stats_t *const *)v2;
 
 	if ((*s2)->total == (*s1)->total)
 		return 0;
