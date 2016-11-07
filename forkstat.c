@@ -1161,11 +1161,11 @@ static void show_help(char *const argv[])
  *  parse_ev()
  *	parse event strings, turn into flag mask
  */
-static int parse_ev(const char *arg)
+static int parse_ev(char *arg)
 {
 	char *str, *token;
 
-	for (str = (char*)arg; (token = strtok(str, ",")) != NULL; str = NULL) {
+	for (str = arg; (token = strtok(str, ",")) != NULL; str = NULL) {
 		size_t i;
 		bool found = false;
 
