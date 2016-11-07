@@ -320,7 +320,7 @@ static bool pid_a_kernel_thread(const char *task, const pid_t id)
 		 * Until we have better kernel support to map /proc/timer_stats
 		 * pids to containerised pids this is the best we can do.
 		 */
-		static kernel_task_info kernel_tasks[] = {
+		static const kernel_task_info kernel_tasks[] = {
 			KERN_TASK_INFO("swapper/"),
 			KERN_TASK_INFO("kworker/"),
 			KERN_TASK_INFO("ksoftirqd/"),
