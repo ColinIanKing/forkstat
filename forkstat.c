@@ -121,14 +121,14 @@ typedef struct {
 
 /* Mapping of event names to option flags and event_t types */
 static const ev_map_t ev_map[] = {
-	{ "fork", "Fork", OPT_EV_FORK, STAT_FORK },
-	{ "exec", "Exec", OPT_EV_EXEC, STAT_EXEC },
-	{ "exit", "Exit", OPT_EV_EXIT, STAT_EXIT },
-	{ "core", "Coredump", OPT_EV_CORE, STAT_CORE },
-	{ "comm", "Comm", OPT_EV_COMM, STAT_COMM },
-	{ "clone","Clone", OPT_EV_CLNE, STAT_CLNE },
-	{ "all",  ""	, OPT_EV_ALL,   0 },
-	{ NULL  ,  NULL,   0,           0 }
+	{ "fork", "Fork", 	OPT_EV_FORK,	STAT_FORK },
+	{ "exec", "Exec", 	OPT_EV_EXEC,	STAT_EXEC },
+	{ "exit", "Exit", 	OPT_EV_EXIT,	STAT_EXIT },
+	{ "core", "Coredump",	OPT_EV_CORE,	STAT_CORE },
+	{ "comm", "Comm", 	OPT_EV_COMM,	STAT_COMM },
+	{ "clone","Clone",	OPT_EV_CLNE,	STAT_CLNE },
+	{ "all",  "",		OPT_EV_ALL,	0 },
+	{ NULL,	  NULL, 	0,		0 }
 };
 
 #define KERN_TASK_INFO(str)	{ str, sizeof(str) - 1 }
