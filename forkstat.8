@@ -42,14 +42,16 @@ root privilege.
 
 Forkstat will display several columns of process related information:
 .TS
-l lw(3i).
+l lw(5i).
 \fBTitle	Description\fR
 Time	When the fork/exec/exit event occurred.
 Event	Type of event.
 PID	Process or thread ID.
 Info	Parent or child if a fork, or exit value.
-Duration	On exit, the duration the command ran for in seconds.
+Duration	T{
+On exit, the duration the command ran for in seconds.
 Process	The process name. The name will be in [ ] brackets if it is a kernel thread.
+T}
 .TE
 .SH OPTIONS
 forkstat options are as follow:
@@ -64,7 +66,7 @@ specify duration in seconds to run forkstat.
 specify events to trace as a comma seperated list. By default the fork, exec and exit 
 events are traced. Available events are:
 .TS
-l lw(3i).
+l lw(5i).
 \fBEvent	Description\fR
 fork	forks
 exec	execs
