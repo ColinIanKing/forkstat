@@ -1,0 +1,18 @@
+name: forkstat
+version: 0.01.16-20161115-107-bf63416
+summary: process fork/exec/exit monitoring tool
+description: Forkstat monitors process fork(), exec() and exit() activity.  It is useful for monitoring system behaviour and to track down rogue processes that are spawning off processes and potentially abusing the system.
+confinement: devmode
+
+parts:
+    forkstat:
+        plugin: make
+        source: git://kernel.ubuntu.com/cking/forkstat
+        build-packages:
+            - gcc
+            - make
+
+apps:
+    forkstat:
+        command: usr/bin/forkstat
+
