@@ -726,10 +726,9 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 	proc_info_t *info;
 	char *cmdline;
 
-	if ((cmdline = proc_cmdline(pid)) == NULL) {
-		free(cmdline);
+	cmdline = proc_cmdline(pid);
+	if (!cmdline)
 		return NULL;
-	}
 
 	/* Re-use any info on the list if it's free */
 	info = proc_info[i];
