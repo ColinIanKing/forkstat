@@ -47,7 +47,7 @@ dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
 	cp -rp Makefile forkstat.c forkstat.8 mascot COPYING \
-		forkstat-$(VERSION)
+		snapcraft forkstat-$(VERSION)
 	tar -zcf forkstat-$(VERSION).tar.gz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
