@@ -1,3 +1,16 @@
+forkstat (0.01.17-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Manual: update copyright year and manual date
+  * Makefile: add snapcraft to make dist rule
+  * Add variable pid size handling.
+  * Remove redundant free on a null pointer
+  * Add snapcraft
+  * Update copyright year
+  * Manual: expand width of columns to 5i
+
+ -- Colin King <colin.king@canonical.com>  Fri, 14 Apr 2017 17:37:57 +0100
+
 forkstat (0.01.16-1) unstable; urgency=medium
 
   * Makefile: bump version
