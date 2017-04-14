@@ -206,6 +206,42 @@ static const int signals[] = {
 static proc_info_t *proc_info_get(pid_t pid);
 
 /*
+ *  pid_max_digits()
+ *	determine (or guess) maximum digits of pids
+ */
+static int pid_max_digits(void)
+{
+	static int max_digits;
+	ssize_t n;
+	int fd;
+	const int default_digits = 6;
+	const int min_digits = 5;
+	char buf[32];
+
+	if (max_digits)
+		goto ret;
+
+	max_digits = default_digits;
+	fd = open("/proc/sys/kernel/pid_max", O_RDONLY);
+	if (fd < 0)
+		goto ret;
+	n = read(fd, buf, sizeof(buf) - 1);
+	(void)close(fd);
+	if (n < 0)
+		goto ret;
+
+	buf[n] = '\0';
+	max_digits = 0;
+	while (buf[max_digits] >= '0' && buf[max_digits] <= '9')
+		max_digits++;
+	if (max_digits < min_digits)
+		max_digits = min_digits;
+ret:
+	return max_digits;
+
+}
+
+/*
  *  get_parent_pid()
  *	get parent pid and set is_thread to true if process
  *	not forked but a newly created thread
@@ -380,10 +416,15 @@ static int tty_height(void)
  */
 static void print_heading(void)
 {
+	int pid_size;
+
 	if (opt_flags & OPT_QUIET)
 		return;
 
-	printf("Time     Event  PID  Info  Duration Process\n");
+	pid_size = pid_max_digits();
+
+	printf("Time     Event %*.*s Info  Duration Process\n",
+		pid_size, pid_size, "PID");
 }
 
 /*
@@ -927,6 +968,7 @@ static void set_priority(void)
 static int monitor(const int sock)
 {
 	struct nlmsghdr *nlmsghdr;
+	const int pid_size = pid_max_digits();
 
 	print_heading();
 	set_priority();
@@ -1029,19 +1071,19 @@ static int monitor(const int sock)
 					if (info1 != NULL && info2 != NULL) {
 						char *type = is_thread ? "clone" : "fork";
 						row_increment();
-						printf("%s %-5.5s %5d parent %8s %s%s%s\n",
+						printf("%s %-5.5s %*d parent %8s %s%s%s\n",
 							when,
 							type,
-							ppid,
+							pid_size, ppid,
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s %-5.5s %5d %-6.6s %8s %s%s%s\n",
+						printf("%s %-5.5s %*d %-6.6s %8s %s%s%s\n",
 							when,
 							type,
-							proc_ev->event_data.fork.child_pid,
+							pid_size, proc_ev->event_data.fork.child_pid,
 							is_thread ? "thread" : "child",
 							"",
 							info1->kernel_thread ? "[" : "",
@@ -1055,9 +1097,9 @@ static int monitor(const int sock)
 				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
-					printf("%s exec  %5d        %8s %s%s%s\n",
+					printf("%s exec  %*d        %8s %s%s%s\n",
 						when,
-						proc_ev->event_data.exec.process_pid,
+						pid_size, proc_ev->event_data.exec.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1081,9 +1123,9 @@ static int monitor(const int sock)
 						snprintf(duration, sizeof(duration), "unknown");
 					}
 					row_increment();
-					printf("%s exit  %5d  %5d %8s %s%s%s\n",
+					printf("%s exit  %*d  %5d %8s %s%s%s\n",
 						when,
-						proc_ev->event_data.exit.process_pid,
+						pid_size, proc_ev->event_data.exit.process_pid,
 						proc_ev->event_data.exit.exit_code,
 						duration,
 						info1->kernel_thread ? "[" : "",
@@ -1099,9 +1141,9 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
 					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
 					row_increment();
-					printf("%s core  %5d        %8s %s%s%s\n",
+					printf("%s core  %*d        %8s %s%s%s\n",
 						when,
-						proc_ev->event_data.exit.process_pid,
+						pid_size, proc_ev->event_data.exit.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1119,9 +1161,9 @@ static int monitor(const int sock)
 						break;
 					row_increment();
 
-					printf("%s comm  %5d        %8s %s%s%s -> %s\n",
+					printf("%s comm  %*d        %8s %s%s%s -> %s\n",
 						when,
-						proc_ev->event_data.exit.process_pid,
+						pid_size, proc_ev->event_data.exit.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
