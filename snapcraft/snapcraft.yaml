@@ -1,8 +1,10 @@
 name: forkstat
-version: 0.01.16-20161115-107-bf63416
+version: 0
 summary: process fork/exec/exit monitoring tool
 description: Forkstat monitors process fork(), exec() and exit() activity.  It is useful for monitoring system behaviour and to track down rogue processes that are spawning off processes and potentially abusing the system.
 confinement: devmode
+type: app
+grade: stable
 
 parts:
     forkstat:
