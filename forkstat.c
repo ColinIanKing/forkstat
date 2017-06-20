@@ -849,9 +849,10 @@ static int proc_info_load(void)
 
 			errno = 0;
 			pid = (pid_t)strtol(dirent->d_name, NULL, 10);
-			(void)proc_info_add(pid, NULL);
-			if (!errno)
+			if (!errno) {
+				(void)proc_info_add(pid, NULL);
 				proc_thread_info_add(pid);
+			}
 		}
 	}
 
