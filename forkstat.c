@@ -1189,11 +1189,12 @@ static int monitor(const int sock)
 static void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
-	printf("usage: %s [-d|-D|-e|-h|-s|-S|-q]\n", argv[0]);
+	printf("usage: %s [-d|-D|-e|-h|-l|-s|-S|-q]\n", argv[0]);
 	printf("-d\tstrip off directory path from process name.\n");
 	printf("-D\tspecify run duration in seconds.\n");
 	printf("-e\tselect which events to monitor.\n");
 	printf("-h\tshow this help.\n");
+	printf("-l\tforce stdout line buffering.\n");
 	printf("-s\tshow short process name.\n");
 	printf("-S\tshow event statistics at end of the run.\n");
 	printf("-q\trun quietly and enable -S option.\n");
@@ -1232,7 +1233,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		int c = getopt(argc, argv, "dD:e:hsSq");
+		int c = getopt(argc, argv, "dD:e:hlsSq");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1262,6 +1263,12 @@ int main(int argc, char * const argv[])
 			break;
 		case 'q':
 			opt_flags |= OPT_QUIET;
+			break;
+		case 'l':
+			if (setvbuf(stdout, NULL, _IOLBF, 0) != 0) {
+				fprintf(stderr, "Error setting line buffering.\n");
+				exit(EXIT_FAILURE);
+			}
 			break;
 		default:
 			show_help(argv);
