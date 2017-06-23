@@ -43,6 +43,7 @@ forkstat: forkstat.o
 forkstat.8.gz: forkstat.8
 	gzip -c $< > $@
 
+.PHONEY: dist
 dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
@@ -51,10 +52,17 @@ dist:
 	tar -zcf forkstat-$(VERSION).tar.gz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
+.PHONEY: pdf
+pdf:
+	man -t ./forkstat.8 | ps2pdf - > forkstat.pdf
+
+.PHONEY: clean
 clean:
 	rm -f forkstat forkstat.o forkstat.8.gz
 	rm -f forkstat-$(VERSION).tar.gz
+	rm -f forkstat.pdf
 
+.PHONEY: install
 install: forkstat forkstat.8.gz
 	mkdir -p ${DESTDIR}${BINDIR}
 	cp forkstat ${DESTDIR}${BINDIR}
