@@ -1190,14 +1190,14 @@ static void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
 	printf("usage: %s [-d|-D|-e|-h|-l|-s|-S|-q]\n", argv[0]);
-	printf("-d\tstrip off directory path from process name.\n");
-	printf("-D\tspecify run duration in seconds.\n");
-	printf("-e\tselect which events to monitor.\n");
-	printf("-h\tshow this help.\n");
-	printf("-l\tforce stdout line buffering.\n");
-	printf("-s\tshow short process name.\n");
-	printf("-S\tshow event statistics at end of the run.\n");
-	printf("-q\trun quietly and enable -S option.\n");
+	printf("-d\tstrip off directory path from process name.\n"
+	       "-D\tspecify run duration in seconds.\n"
+	       "-e\tselect which events to monitor.\n"
+	       "-h\tshow this help.\n"
+	       "-l\tforce stdout line buffering.\n"
+	       "-s\tshow short process name.\n"
+	       "-S\tshow event statistics at end of the run.\n"
+	       "-q\trun quietly and enable -S option.\n");
 }
 
 /*
