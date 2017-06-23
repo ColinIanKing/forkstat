@@ -26,6 +26,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 .RI [ \-e ]
 .RI [ \-h ]
 .RI [ \-l ]
+.RI [ \-r ]
 .RI [ \-s ]
 .RI [ \-S ]
 .RI [ \-q ]
@@ -81,6 +82,13 @@ all	all the events above
 .B \-h
 show brief help summary.
 .TP
+.B \-l
+set stdout to line-buffered mode.
+.TP
+.B \-r
+run with real time FIFO scheduling with maximum priority to keep up with high volumes
+of process events.
+.TP
 .B \-s
 show short process name information.
 .TP
@@ -89,9 +97,6 @@ show event statistics.
 .TP
 .B \-q
 run quietly and enable the \-S option.
-.TP
-.B \-l
-set stdout to line-buffered mode.
 .SH EXAMPLES
 .LP
 Show process activity with short process names and directory base path stripped off:

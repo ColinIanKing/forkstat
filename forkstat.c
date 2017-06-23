@@ -61,6 +61,7 @@
 #define OPT_CMD_DIRNAME_STRIP	(0x00000004)
 #define OPT_STATS		(0x00000008)
 #define OPT_QUIET		(0x00000010)
+#define OPT_REALTIME		(0x00000020)
 
 #define OPT_EV_FORK		(0x00000100)
 #define OPT_EV_EXEC		(0x00000200)
@@ -78,7 +79,6 @@
 #ifndef LINUX_VERSION_CODE
 #define LINUX_VERSION_CODE KERNEL_VERSION(2,0,0)
 #endif
-
 
 /* /proc info cache */
 typedef struct proc_info {
@@ -642,7 +642,7 @@ static char *proc_cmdline(const pid_t pid)
 		return proc_comm(pid);
 	}
 
-	memset(buffer, 0, sizeof(buffer));
+	(void)memset(buffer, 0, sizeof(buffer));
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
 		(void)close(fd);
 		return proc_comm(pid);
@@ -887,7 +887,7 @@ static int netlink_connect(void)
 		return -1;
 	}
 
-	memset(&addr, 0, sizeof(addr));
+	(void)memset(&addr, 0, sizeof(addr));
 	addr.nl_pid = getpid();
 	addr.nl_family = AF_NETLINK;
 	addr.nl_groups = CN_IDX_PROC;
@@ -913,14 +913,14 @@ static int netlink_listen(const int sock)
 	struct cn_msg cn_msg;
 	enum proc_cn_mcast_op op;
 
-	memset(&nlmsghdr, 0, sizeof(nlmsghdr));
+	(void)memset(&nlmsghdr, 0, sizeof(nlmsghdr));
 	nlmsghdr.nlmsg_len = NLMSG_LENGTH(sizeof(cn_msg) + sizeof(op));
 	nlmsghdr.nlmsg_pid = getpid();
 	nlmsghdr.nlmsg_type = NLMSG_DONE;
 	iov[0].iov_base = &nlmsghdr;
 	iov[0].iov_len = sizeof(nlmsghdr);
 
-	memset(&cn_msg, 0, sizeof(cn_msg));
+	(void)memset(&cn_msg, 0, sizeof(cn_msg));
 	cn_msg.id.idx = CN_IDX_PROC;
 	cn_msg.id.val = CN_VAL_PROC;
 	cn_msg.len = sizeof(enum proc_cn_mcast_op);
@@ -957,7 +957,7 @@ static void set_priority(void)
 	if ((max = sched_get_priority_max(sched)) < 0)
 		return;
 
-	memset(&param, 0, sizeof(param));
+	(void)memset(&param, 0, sizeof(param));
 	param.sched_priority = max;
 	(void)sched_setscheduler(getpid(), sched, &param);
 }
@@ -1062,7 +1062,7 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.fork.parent_pid,
 					is_thread ? STAT_CLNE : STAT_FORK);
 				if (gettimeofday(&tv, NULL) < 0) {
-					memset(&tv, 0, sizeof tv);
+					(void)memset(&tv, 0, sizeof tv);
 				}
 				info1 = proc_info_get(ppid);
 				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
@@ -1115,7 +1115,7 @@ static int monitor(const int sock)
 						double d1, d2;
 
 						if (gettimeofday(&tv, NULL) < 0) {
-							memset(&tv, 0, sizeof tv);
+							(void)memset(&tv, 0, sizeof tv);
 						}
 						d1 = timeval_to_double(&info1->start);
 						d2 = timeval_to_double(&tv);
@@ -1195,6 +1195,7 @@ static void show_help(char *const argv[])
 	       "-e\tselect which events to monitor.\n"
 	       "-h\tshow this help.\n"
 	       "-l\tforce stdout line buffering.\n"
+	       "-r\run with real time FIFO scheduler.\n"
 	       "-s\tshow short process name.\n"
 	       "-S\tshow event statistics at end of the run.\n"
 	       "-q\trun quietly and enable -S option.\n");
@@ -1233,7 +1234,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		int c = getopt(argc, argv, "dD:e:hlsSq");
+		int c = getopt(argc, argv, "dD:e:hlrsSq");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1254,6 +1255,9 @@ int main(int argc, char * const argv[])
 		case 'h':
 			show_help(argv);
 			exit(EXIT_SUCCESS);
+		case 'r':
+			opt_flags &= OPT_REALTIME;
+			break;
 		case 's':
 			opt_flags &= ~OPT_CMD_LONG;
 			opt_flags |= OPT_CMD_SHORT;
@@ -1284,7 +1288,7 @@ int main(int argc, char * const argv[])
 		goto abort_sock;
 	}
 
-	memset(&new_action, 0, sizeof(new_action));
+	(void)memset(&new_action, 0, sizeof(new_action));
 	for (i = 0; signals[i] != -1; i++) {
 		new_action.sa_handler = handle_sig;
 		sigemptyset(&new_action.sa_mask);
@@ -1302,6 +1306,27 @@ int main(int argc, char * const argv[])
 	if (proc_info_load() < 0) {
 		fprintf(stderr, "Cannot load process cache. Is /proc mounted?\n");
 		goto abort_sock;
+	}
+
+	if (opt_flags & OPT_REALTIME) {
+		struct sched_param param;
+		int max_prio;
+		const int policy = SCHED_FIFO;
+
+		max_prio = sched_get_priority_max(policy);
+		if (max_prio < 0) {
+			fprintf(stderr, "sched_get_priority_max failed: errno=%d (%s)\n",
+				errno, strerror(errno));
+			goto abort_sock;
+		}
+
+		(void)memset(&param, 0, sizeof(param));
+		param.sched_priority = max_prio;
+		if (sched_setscheduler(getpid(), policy, &param) < 0) {
+			fprintf(stderr, "sched_setscheduler failed: errno=%d (%s)\n",
+				errno, strerror(errno));
+			goto abort_sock;
+		}
 	}
 
 	sock = netlink_connect();
