@@ -69,7 +69,8 @@
 #define OPT_EV_CORE		(0x00000800)
 #define OPT_EV_COMM		(0x00001000)
 #define OPT_EV_CLNE		(0x00002000)
-#define OPT_EV_MASK		(0x00003f00)
+#define OPT_EV_PTRC		(0x00004000)
+#define OPT_EV_MASK		(0x00007f00)
 #define OPT_EV_ALL		(OPT_EV_MASK)
 
 #define	GOT_TGID		(0x01)
@@ -102,6 +103,7 @@ typedef enum {
 	STAT_CORE,
 	STAT_COMM,
 	STAT_CLNE,
+	STAT_PTRC,
 	STAT_LAST
 } event_t;
 
@@ -127,6 +129,7 @@ static const ev_map_t ev_map[] = {
 	{ "core", "Coredump",	OPT_EV_CORE,	STAT_CORE },
 	{ "comm", "Comm", 	OPT_EV_COMM,	STAT_COMM },
 	{ "clone","Clone",	OPT_EV_CLNE,	STAT_CLNE },
+	{ "ptrce","Ptrace",	OPT_EV_PTRC,	STAT_PTRC },
 	{ "all",  "",		OPT_EV_ALL,	0 },
 	{ NULL,	  NULL, 	0,		0 }
 };
@@ -1123,6 +1126,25 @@ static int monitor(const int sock)
 				}
 				break;
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
+			case PROC_EVENT_PTRACE:
+				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_PTRC);
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_PTRC)) {
+					const bool attach = (proc_ev->event_data.ptrace.tracer_pid != 0);
+
+					info1 = proc_info_get(proc_ev->event_data.ptrace.tracer_pid);
+					row_increment();
+					printf("%s ptrce %*d %6s %8s %s%s%s\n",
+						when,
+						pid_size, proc_ev->event_data.ptrace.process_pid,
+						attach ? "attach" : "detach",
+						"",
+						info1->kernel_thread ? "[" : "",
+						attach ? info1->cmdline : "",
+						info1->kernel_thread ? "]" : "");
+				}
+				break;
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,1,0)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
@@ -1252,7 +1274,7 @@ int main(int argc, char * const argv[])
 	}
 
 	if ((opt_flags & OPT_EV_MASK) == 0)
-		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT | OPT_EV_CLNE);
+		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT | OPT_EV_CLNE | OPT_EV_PTRC);
 
 	if (geteuid() != 0) {
 		fprintf(stderr, "Need to run with root access.\n");
