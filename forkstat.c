@@ -55,26 +55,30 @@
 #define APP_NAME		"forkstat"
 #define MAX_PIDS		(32769)	/* Hash Max PIDs */
 
-#define NULL_PID		(-1)
+#define NULL_PID		(pid_t)(-1)
+#define NULL_UID		(uid_t)(-1)
+#define NULL_GID		(gid_t)(-1)
+#define NULL_TTY		(dev_t)(-1)
 
-#define OPT_CMD_LONG		(0x00000001)
-#define OPT_CMD_SHORT		(0x00000002)
-#define OPT_CMD_DIRNAME_STRIP	(0x00000004)
-#define OPT_STATS		(0x00000008)
-#define OPT_QUIET		(0x00000010)
-#define OPT_REALTIME		(0x00000020)
+#define OPT_CMD_LONG		(0x00000001)	/* Long command line info */
+#define OPT_CMD_SHORT		(0x00000002)	/* Short command line info */
+#define OPT_CMD_DIRNAME_STRIP	(0x00000004)	/* Strip dirpath from command */
+#define OPT_STATS		(0x00000008)	/* Show stats at end of run */
+#define OPT_QUIET		(0x00000010)	/* Run quietly */
+#define OPT_REALTIME		(0x00000020)	/* Run with Real Time scheduling */
+#define OPT_EXTRA		(0x00000040)	/* Show extra stats */
 
-#define OPT_EV_FORK		(0x00000100)
-#define OPT_EV_EXEC		(0x00000200)
-#define OPT_EV_EXIT		(0x00000400)
-#define OPT_EV_CORE		(0x00000800)
-#define OPT_EV_COMM		(0x00001000)
-#define OPT_EV_CLNE		(0x00002000)
-#define OPT_EV_PTRC		(0x00004000)
-#define OPT_EV_UID		(0x00008000)
-#define OPT_EV_SID		(0x00010000)
-#define OPT_EV_MASK		(0x0001ff00)
-#define OPT_EV_ALL		(OPT_EV_MASK)
+#define OPT_EV_FORK		(0x00000100)	/* Fork event */
+#define OPT_EV_EXEC		(0x00000200)	/* Exec event */
+#define OPT_EV_EXIT		(0x00000400)	/* Exit event */
+#define OPT_EV_CORE		(0x00000800)	/* Coredump event */
+#define OPT_EV_COMM		(0x00001000)	/* Comm proc info event */
+#define OPT_EV_CLNE		(0x00002000)	/* Clone event */
+#define OPT_EV_PTRC		(0x00004000)	/* Ptrace event */
+#define OPT_EV_UID		(0x00008000)	/* UID event */
+#define OPT_EV_SID		(0x00010000)	/* SID event */
+#define OPT_EV_MASK		(0x0001ff00)	/* Event mask */
+#define OPT_EV_ALL		(OPT_EV_MASK)	/* All events */
 
 #define	GOT_TGID		(0x01)
 #define GOT_PPID		(0x02)
@@ -88,6 +92,9 @@
 typedef struct proc_info {
 	struct proc_info *next;	/* next proc info in hashed linked list */
 	pid_t	pid;		/* Process ID */
+	uid_t	uid;		/* User ID */
+	gid_t	gid;		/* GUID */
+	dev_t	tty;		/* TTY dev */
 	char	*cmdline;	/* /proc/pid/cmdline text */
 	bool	kernel_thread;	/* true if a kernel thread */
 	struct timeval start;	/* time when process started */
@@ -154,6 +161,7 @@ static long int opt_duration = -1;		/* duration, < 0 means run forever */
 /* Default void no process info struct */
 static proc_info_t no_info = {
 	.pid = NULL_PID,
+	.uid = NULL_UID,
 	.cmdline = "<unknown>",
 	.kernel_thread = false,
 	.start = { 0, 0 },
@@ -215,7 +223,10 @@ static const int signals[] = {
 
 static proc_info_t *proc_info_get(pid_t pid);
 
-
+/*
+ *  get_username()
+ *	get username from a given user id
+ */
 static char *get_username(const uid_t uid)
 {
 	struct passwd *pwd;
@@ -227,6 +238,78 @@ static char *get_username(const uid_t uid)
 
 	snprintf(buf, sizeof(buf), "%d", uid);
 	return buf;
+}
+
+/*
+ *  get_tty()
+ *	get a TTY name with device ID dev
+ */
+static char *get_tty(const dev_t dev)
+{
+	DIR *dir;
+	struct dirent *dirent;
+	static char tty[16];
+
+	strncpy(tty, "?", sizeof(tty));
+
+	if ((dir = opendir("/dev/pts")) == NULL)
+		goto err;
+
+	while ((dirent = readdir(dir))) {
+		struct stat buf;
+		char path[PATH_MAX];
+
+		if (dirent->d_name[0] == '.')
+			continue;
+
+		snprintf(path, sizeof(path), "/dev/pts/%s", dirent->d_name);
+		if (stat(path, &buf) < 0)
+			continue;
+
+		if (buf.st_rdev == dev) {
+			snprintf(tty, sizeof(tty), "pts/%s", dirent->d_name);
+			break;
+		}
+	}
+
+	(void)closedir(dir);
+err:
+	return tty;
+}
+
+/*
+ *  get_extra()
+ *	quick and dirty way to get UID and GID from a PID,
+ *	note that this does not cater of changes
+ *	because of use of an effective ID.
+ */
+static void get_extra(const pid_t pid, proc_info_t *info)
+{
+	FILE *fp;
+	char path[PATH_MAX];
+	struct stat buf;
+	long dev;
+
+	info->uid = NULL_UID;
+	info->gid = NULL_GID;
+	info->tty = NULL_TTY;
+
+	if (!(opt_flags & OPT_EXTRA))
+		return;
+
+	snprintf(path, sizeof(path), "/proc/%u/stat", pid);
+	if (stat(path, &buf) == 0) {
+		info->uid = buf.st_uid;
+		info->gid = buf.st_gid;
+	}
+
+	fp = fopen(path, "r");
+	if (!fp)
+		return;
+	if (fscanf(fp, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1) {
+		info->tty = (dev_t)dev;
+	}
+	fclose(fp);
 }
 
 /*
@@ -447,8 +530,9 @@ static void print_heading(void)
 
 	pid_size = pid_max_digits();
 
-	printf("Time     Event %*.*s  Info  Duration Process\n",
-		pid_size, pid_size, "PID");
+	printf("Time     Event %*.*s %sInfo   Duration Process\n",
+		pid_size, pid_size, "PID",
+		opt_flags & OPT_EXTRA ? "   UID TTY    " : "");
 }
 
 /*
@@ -733,6 +817,8 @@ static void proc_info_free(const pid_t pid)
 	while (info) {
 		if (info->pid == pid) {
 			info->pid = NULL_PID;
+			info->uid = NULL_UID;
+			info->gid = NULL_GID;
 			free(info->cmdline);
 			info->cmdline = NULL;
 			return;
@@ -814,6 +900,7 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 	}
 	info->cmdline = cmdline;
 	info->pid = pid;
+	get_extra(pid, info);
 	info->kernel_thread = pid_a_kernel_thread(cmdline, pid);
 
 	if (tv)
@@ -883,6 +970,24 @@ static int proc_info_load(void)
 	(void)closedir(dir);
 	return 0;
 }
+
+static char *extra_info(const uid_t uid)
+{
+	static char buf[20];
+
+	*buf = '\0';
+	if (opt_flags & OPT_EXTRA) {
+		proc_info_t *info = proc_info_get(uid);
+
+		if (info && info->uid != NULL_UID)
+			snprintf(buf, sizeof(buf), "%6d %-6.6s ", info->uid, get_tty(info->tty));
+		else
+			snprintf(buf, sizeof(buf), "%14s", "");
+	}
+
+	return buf;
+}
+
 
 /*
  *  handle_sig()
@@ -1015,7 +1120,7 @@ static int monitor(const int sock)
 			struct tm tm;
 			char when[10];
 			time_t now;
-			pid_t ppid;
+			pid_t pid, ppid;
 			bool is_thread;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
@@ -1054,32 +1159,35 @@ static int monitor(const int sock)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			case PROC_EVENT_FORK:
 				ppid = get_parent_pid(proc_ev->event_data.fork.child_pid, &is_thread);
+				pid = proc_ev->event_data.fork.child_pid;
 				proc_stats_account(proc_ev->event_data.fork.parent_pid,
 					is_thread ? STAT_CLNE : STAT_FORK);
 				if (gettimeofday(&tv, NULL) < 0) {
 					(void)memset(&tv, 0, sizeof tv);
 				}
 				info1 = proc_info_get(ppid);
-				info2 = proc_info_add(proc_ev->event_data.fork.child_pid, &tv);
+				info2 = proc_info_add(pid, &tv);
 				if (!(opt_flags & OPT_QUIET) &&
 					(((opt_flags & OPT_EV_FORK) && !is_thread) ||
 					 ((opt_flags & OPT_EV_CLNE) && is_thread))) {
 					if (info1 != NULL && info2 != NULL) {
 						char *type = is_thread ? "clone" : "fork";
 						row_increment();
-						printf("%s %-5.5s %*d parent %8s %s%s%s\n",
+						printf("%s %-5.5s %*d %sparent %8s %s%s%s\n",
 							when,
 							type,
 							pid_size, ppid,
+							extra_info(ppid),
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s %-5.5s %*d %-6.6s %8s %s%s%s\n",
+						printf("%s %-5.5s %*d %s%6.6s %8s %s%s%s\n",
 							when,
 							type,
-							pid_size, proc_ev->event_data.fork.child_pid,
+							pid_size, pid,
+							extra_info(pid),
 							is_thread ? "thread" : "child",
 							"",
 							info1->kernel_thread ? "[" : "",
@@ -1090,12 +1198,14 @@ static int monitor(const int sock)
 				break;
 			case PROC_EVENT_EXEC:
 				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_EXEC);
-				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
+				pid = proc_ev->event_data.exec.process_pid;
+				info1 = proc_info_update(pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
-					printf("%s exec  %*d        %8s %s%s%s\n",
+					printf("%s exec  %*d %s       %8s %s%s%s\n",
 						when,
-						pid_size, proc_ev->event_data.exec.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1105,7 +1215,8 @@ static int monitor(const int sock)
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
-					info1 = proc_info_get(proc_ev->event_data.exit.process_pid);
+					pid = proc_ev->event_data.exit.process_pid;
+					info1 = proc_info_get(pid);
 					if (info1->start.tv_sec) {
 						double d1, d2;
 
@@ -1119,9 +1230,10 @@ static int monitor(const int sock)
 						snprintf(duration, sizeof(duration), "unknown");
 					}
 					row_increment();
-					printf("%s exit  %*d  %5d %8s %s%s%s\n",
+					printf("%s exit  %*d %s%6d %8s %s%s%s\n",
 						when,
-						pid_size, proc_ev->event_data.exit.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						proc_ev->event_data.exit.exit_code,
 						duration,
 						info1->kernel_thread ? "[" : "",
@@ -1134,21 +1246,23 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_UID);
 				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
-
 					row_increment();
+					pid = proc_ev->event_data.exec.process_pid;
 					if (proc_ev->what == PROC_EVENT_UID) {
-						printf("%s uid   %*d %6s %8s %s%s%s\n",
+						printf("%s uid   %*d %s%6s %8s %s%s%s\n",
 							when,
-							pid_size, proc_ev->event_data.exec.process_pid,
+							pid_size, pid,
+							extra_info(pid),
 							get_username(proc_ev->event_data.id.e.euid),
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 					} else {
-						printf("%s gid   %*d %6s %8s %s%s%s\n",
+						printf("%s gid   %*d %6s %s%8s %s%s%s\n",
 							when,
-							pid_size, proc_ev->event_data.exec.process_pid,
+							pid_size, pid,
+							extra_info(pid),
 							get_username(proc_ev->event_data.id.e.euid),
 							"",
 							info1->kernel_thread ? "[" : "",
@@ -1161,11 +1275,12 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_SID);
 				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
-
 					row_increment();
-					printf("%s sid   %*d %6d %8s %s%s%s\n",
+					pid = proc_ev->event_data.exec.process_pid;
+					printf("%s sid   %*d %s%6d %8s %s%s%s\n",
 						when,
-						pid_size, proc_ev->event_data.exec.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						proc_ev->event_data.sid.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
@@ -1178,11 +1293,13 @@ static int monitor(const int sock)
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
-					info1 = proc_info_get(proc_ev->event_data.coredump.process_pid);
+					pid = proc_ev->event_data.coredump.process_pid;
+					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s core  %*d        %8s %s%s%s\n",
+					printf("%s core  %*d %s       %8s %s%s%s\n",
 						when,
-						pid_size, proc_ev->event_data.exit.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1196,11 +1313,15 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_PTRC)) {
 					const bool attach = (proc_ev->event_data.ptrace.tracer_pid != 0);
 
-					info1 = proc_info_get(proc_ev->event_data.ptrace.tracer_pid);
+					pid = attach ? proc_ev->event_data.ptrace.tracer_pid :
+						       proc_ev->event_data.ptrace.process_pid;
+					pid = proc_ev->event_data.ptrace.process_pid;
+					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s ptrce %*d %6s %8s %s%s%s\n",
+					printf("%s ptrce %*d %s%6s %8s %s%s%s\n",
 						when,
-						pid_size, proc_ev->event_data.ptrace.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						attach ? "attach" : "detach",
 						"",
 						info1->kernel_thread ? "[" : "",
@@ -1213,15 +1334,17 @@ static int monitor(const int sock)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
-					info1 = proc_info_get(proc_ev->event_data.comm.process_pid);
-					comm = proc_comm(proc_ev->event_data.comm.process_pid);
+					pid = proc_ev->event_data.comm.process_pid;
+					info1 = proc_info_get(pid);
+					comm = proc_comm(pid);
 					if (comm == NULL)
 						break;
 					row_increment();
 
-					printf("%s comm  %*d        %8s %s%s%s -> %s\n",
+					printf("%s comm  %*d %s       %8s %s%s%s -> %s\n",
 						when,
-						pid_size, proc_ev->event_data.exit.process_pid,
+						pid_size, pid,
+						extra_info(pid),
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1281,7 +1404,6 @@ static int parse_ev(char *arg)
 			for (i = 0; ev_map[i].event; i++)
 				printf(" %s", ev_map[i].event);
 			printf("\n");
-			
 			return -1;
 		}
 	}
@@ -1295,7 +1417,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		int c = getopt(argc, argv, "dD:e:hlrsSq");
+		int c = getopt(argc, argv, "dD:e:hlrsSqx");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1334,6 +1456,9 @@ int main(int argc, char * const argv[])
 				fprintf(stderr, "Error setting line buffering.\n");
 				exit(EXIT_FAILURE);
 			}
+			break;
+		case 'x':
+			opt_flags |= OPT_EXTRA;
 			break;
 		default:
 			show_help(argv);
