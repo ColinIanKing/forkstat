@@ -1394,7 +1394,8 @@ static void show_help(char *const argv[])
 	       "-r\trun with real time FIFO scheduler.\n"
 	       "-s\tshow short process name.\n"
 	       "-S\tshow event statistics at end of the run.\n"
-	       "-q\trun quietly and enable -S option.\n");
+	       "-q\trun quietly and enable -S option.\n"
+	       "-x\tshow extra process information.\n");
 }
 
 /*
