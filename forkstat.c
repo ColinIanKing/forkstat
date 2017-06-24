@@ -423,7 +423,7 @@ static void print_heading(void)
 
 	pid_size = pid_max_digits();
 
-	printf("Time     Event %*.*s Info  Duration Process\n",
+	printf("Time     Event %*.*s  Info  Duration Process\n",
 		pid_size, pid_size, "PID");
 }
 
