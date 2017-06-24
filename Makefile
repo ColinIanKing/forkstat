@@ -16,9 +16,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-VERSION=0.01.19
+VERSION=0.02.00
 #
-# Version "Frantic Forking Finder"
+# Version "Perspicacious Process Peeker"
 #
 
 CFLAGS += -Wall -Wextra -DVERSION='"$(VERSION)"' -O2
