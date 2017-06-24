@@ -1,3 +1,27 @@
+forkstat (0.02.00-1) unstable; urgency=medium
+
+  * Makefile: update version and change codename
+  * Minor tweaks to the manual, cosmetic changes
+  * Move arrays to end of stacks to help avoid any stack smashing
+  * Minor source clean-up
+  * Avoid TOCTOU race on stat + open
+  * Use alternative ptrace pid info
+  * Add -x extra UID and TTY information option
+  * Add uid/sid event tracing
+  * Display name of events on -e option when invalid event used
+  * Add ptrace event spying
+  * Fix realtime flag opts mask
+  * Fix -r help option
+  * Add extra spacing in heading as it is offset by one after PID
+  * Remove old set_priority code now that -r replaces it
+  * Manpage: fix pdf warning:
+  * Makefile: add pdf man page rule and add .PHONEYs
+  * Add Philipp Gesang to the man page for kudos for contributions.
+  * Add -r real time scheduling option
+  * Put help options into one large printf statement
+
+ -- Colin King <colin.king@canonical.com>  Sat, 24 Jun 2017 20:42:58 +0100
+
 forkstat (0.01.19-1) unstable; urgency=medium
 
   * Makefile: bump version again
