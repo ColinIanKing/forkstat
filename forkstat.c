@@ -1213,7 +1213,11 @@ static int parse_ev(char *arg)
 			}
 		}
 		if (!found) {
-			fprintf(stderr, "Unknown event '%s'.\n", token);
+			fprintf(stderr, "Unknown event '%s'. Allowed events:", token);
+			for (i = 0; ev_map[i].event; i++)
+				printf(" %s", ev_map[i].event);
+			printf("\n");
+			
 			return -1;
 		}
 	}
