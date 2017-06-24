@@ -363,10 +363,10 @@ ret:
 static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
 {
 	FILE *fp;
-	char path[PATH_MAX];
-	char buffer[4096];
 	pid_t tgid = 0, ppid = 0;
 	unsigned int got = 0;
+	char path[PATH_MAX];
+	char buffer[4096];
 
 	*is_thread = false;
 	snprintf(path, sizeof(path), "/proc/%u/status", pid);
@@ -415,10 +415,10 @@ static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
  */
 static bool sane_proc_pid_info(void)
 {
-	FILE *fp;
 	static const char pattern[] = "container=";
-	const char *ptr = pattern;
+	FILE *fp;
 	bool ret = true;
+	const char *ptr = pattern;
 
 	fp = fopen("/proc/1/environ", "r");
 	if (!fp)
@@ -725,9 +725,9 @@ static void proc_stats_free(void)
  */
 static char *proc_comm(const pid_t pid)
 {
-	char buffer[4096];
 	int fd;
 	ssize_t ret;
+	char buffer[4096];
 
 	snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
 	if ((fd = open(buffer, O_RDONLY)) < 0) {
@@ -748,10 +748,10 @@ static char *proc_comm(const pid_t pid)
  */
 static char *proc_cmdline(const pid_t pid)
 {
-	char buffer[4096];
 	char *ptr;
 	int fd;
 	ssize_t ret;
+	char buffer[4096];
 
 	snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", pid);
 	if ((fd = open(buffer, O_RDONLY)) < 0) {
@@ -1049,10 +1049,10 @@ static int netlink_connect(void)
  */
 static int netlink_listen(const int sock)
 {
-	struct iovec iov[3];
+	enum proc_cn_mcast_op op;
 	struct nlmsghdr nlmsghdr;
 	struct cn_msg cn_msg;
-	enum proc_cn_mcast_op op;
+	struct iovec iov[3];
 
 	(void)memset(&nlmsghdr, 0, sizeof(nlmsghdr));
 	nlmsghdr.nlmsg_len = NLMSG_LENGTH(sizeof(cn_msg) + sizeof(op));
