@@ -1227,7 +1227,7 @@ int main(int argc, char * const argv[])
 			show_help(argv);
 			exit(EXIT_SUCCESS);
 		case 'r':
-			opt_flags &= OPT_REALTIME;
+			opt_flags |= OPT_REALTIME;
 			break;
 		case 's':
 			opt_flags &= ~OPT_CMD_LONG;
