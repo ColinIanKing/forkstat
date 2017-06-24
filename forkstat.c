@@ -39,6 +39,7 @@
 #include <time.h>
 #include <getopt.h>
 #include <sched.h>
+#include <pwd.h>
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -70,7 +71,9 @@
 #define OPT_EV_COMM		(0x00001000)
 #define OPT_EV_CLNE		(0x00002000)
 #define OPT_EV_PTRC		(0x00004000)
-#define OPT_EV_MASK		(0x00007f00)
+#define OPT_EV_UID		(0x00008000)
+#define OPT_EV_SID		(0x00010000)
+#define OPT_EV_MASK		(0x0001ff00)
 #define OPT_EV_ALL		(OPT_EV_MASK)
 
 #define	GOT_TGID		(0x01)
@@ -97,14 +100,16 @@ typedef struct {
 } kernel_task_info;
 
 typedef enum {
-	STAT_FORK = 0,
-	STAT_EXEC,
-	STAT_EXIT,
-	STAT_CORE,
-	STAT_COMM,
-	STAT_CLNE,
-	STAT_PTRC,
-	STAT_LAST
+	STAT_FORK = 0,		/* Fork */
+	STAT_EXEC,		/* Exec */
+	STAT_EXIT,		/* Exit */
+	STAT_CORE,		/* Core dump */
+	STAT_COMM,		/* Proc comm field change */
+	STAT_CLNE,		/* Clone */
+	STAT_PTRC,		/* Ptrace */
+	STAT_UID,		/* UID change */
+	STAT_SID,		/* SID change */
+	STAT_LAST		/* Always last sentinal */
 } event_t;
 
 typedef struct proc_stats {
@@ -130,6 +135,8 @@ static const ev_map_t ev_map[] = {
 	{ "comm", "Comm", 	OPT_EV_COMM,	STAT_COMM },
 	{ "clone","Clone",	OPT_EV_CLNE,	STAT_CLNE },
 	{ "ptrce","Ptrace",	OPT_EV_PTRC,	STAT_PTRC },
+	{ "uid",  "Uid",	OPT_EV_UID,	STAT_UID  },
+	{ "sid",  "Sid",	OPT_EV_SID,	STAT_SID  },
 	{ "all",  "",		OPT_EV_ALL,	0 },
 	{ NULL,	  NULL, 	0,		0 }
 };
@@ -207,6 +214,20 @@ static const int signals[] = {
 };
 
 static proc_info_t *proc_info_get(pid_t pid);
+
+
+static char *get_username(const uid_t uid)
+{
+	struct passwd *pwd;
+	static char buf[12];
+
+	pwd = getpwuid(uid);
+	if (pwd)
+		return pwd->pw_name;
+
+	snprintf(buf, sizeof(buf), "%d", uid);
+	return buf;
+}
 
 /*
  *  pid_max_digits()
@@ -1108,6 +1129,49 @@ static int monitor(const int sock)
 						info1->kernel_thread ? "]" : "");
 				}
 				proc_info_free(proc_ev->event_data.exit.process_pid);
+				break;
+			case PROC_EVENT_UID:
+				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_UID);
+				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
+
+					row_increment();
+					if (proc_ev->what == PROC_EVENT_UID) {
+						printf("%s uid   %*d %6s %8s %s%s%s\n",
+							when,
+							pid_size, proc_ev->event_data.exec.process_pid,
+							get_username(proc_ev->event_data.id.e.euid),
+							"",
+							info1->kernel_thread ? "[" : "",
+							info1->cmdline,
+							info1->kernel_thread ? "]" : "");
+					} else {
+						printf("%s gid   %*d %6s %8s %s%s%s\n",
+							when,
+							pid_size, proc_ev->event_data.exec.process_pid,
+							get_username(proc_ev->event_data.id.e.euid),
+							"",
+							info1->kernel_thread ? "[" : "",
+							info1->cmdline,
+							info1->kernel_thread ? "]" : "");
+					}
+				}
+				break;
+			case PROC_EVENT_SID:
+				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_SID);
+				info1 = proc_info_update(proc_ev->event_data.exec.process_pid);
+				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
+
+					row_increment();
+					printf("%s sid   %*d %6d %8s %s%s%s\n",
+						when,
+						pid_size, proc_ev->event_data.exec.process_pid,
+						proc_ev->event_data.sid.process_pid,
+						"",
+						info1->kernel_thread ? "[" : "",
+						info1->cmdline,
+						info1->kernel_thread ? "]" : "");
+				}
 				break;
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
