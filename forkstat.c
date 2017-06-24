@@ -53,7 +53,7 @@
 #include <linux/cn_proc.h>
 
 #define APP_NAME		"forkstat"
-#define MAX_PIDS		(32769)	/* Hash Max PIDs */
+#define MAX_PIDS		(32769)		/* Hash Max PIDs */
 
 #define NULL_PID		(pid_t)(-1)
 #define NULL_UID		(uid_t)(-1)
@@ -252,7 +252,8 @@ static char *get_tty(const dev_t dev)
 
 	strncpy(tty, "?", sizeof(tty));
 
-	if ((dir = opendir("/dev/pts")) == NULL)
+	dir = opendir("/dev/pts");
+	if (!dir)
 		goto err;
 
 	while ((dirent = readdir(dir))) {
@@ -369,7 +370,8 @@ static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
 
 	*is_thread = false;
 	snprintf(path, sizeof(path), "/proc/%u/status", pid);
-	if ((fp = fopen(path, "r")) == NULL)
+	fp = fopen(path, "r");
+	if (!fp)
 		return 0;
 
 	while (((got & GOT_ALL) != GOT_ALL) &&
@@ -457,7 +459,7 @@ static bool pid_a_kernel_thread(const char *task, const pid_t id)
 	} else {
 		/* In side a container, make a guess at kernel threads */
 		int i;
-		pid_t pgid = getpgid(id);
+		const pid_t pgid = getpgid(id);
 
 		/* This fails for kernel threads inside a container */
 		if (pgid >= 0)
@@ -510,7 +512,7 @@ static bool pid_a_kernel_thread(const char *task, const pid_t id)
 static int tty_height(void)
 {
 #ifdef TIOCGWINSZ
-	int fd = 0;
+	const int fd = 0;
 	struct winsize ws;
 
 	/* if tty and we can get a sane width, return it */
@@ -538,7 +540,7 @@ static void print_heading(void)
 
 	printf("Time     Event %*.*s %sInfo   Duration Process\n",
 		pid_size, pid_size, "PID",
-		opt_flags & OPT_EXTRA ? "   UID TTY    " : "");
+		(opt_flags & OPT_EXTRA) ? "   UID TTY    " : "");
 }
 
 /*
@@ -547,7 +549,7 @@ static void print_heading(void)
  */
 static void row_increment(void)
 {
-	int tty_rows = tty_height();
+	const int tty_rows = tty_height();
 
 	row++;
 	if ((tty_rows > 2) && (row >= tty_rows)) {
@@ -618,11 +620,11 @@ static void proc_stats_account(const pid_t pid, const event_t event)
 		stats = stats->next;
 	}
 	stats = calloc(1, sizeof(*stats));
-	if (stats == NULL)
+	if (!stats)
 		return;		/* silently ignore */
 
 	stats->name = strdup(name);
-	if (stats->name == NULL) {
+	if (!stats->name) {
 		free(stats);
 		return;
 	}
@@ -674,7 +676,7 @@ static void proc_stats_report(void)
 	printf("   Total Process\n");
 
 	sorted = calloc(n, sizeof(proc_stats_t *));
-	if (sorted == NULL) {
+	if (!sorted) {
 		fprintf(stderr, "Cannot sort statistics, out of memory.\n");
 		return;
 	}
@@ -800,11 +802,11 @@ static char *proc_cmdline(const pid_t pid)
  */
 static proc_info_t *proc_info_get(const pid_t pid)
 {
-	size_t i = proc_info_hash(pid);
+	const size_t i = proc_info_hash(pid);
 	proc_info_t *info = proc_info[i];
 
 	while (info) {
-		if (proc_info[i]->pid == pid)
+		if (info->pid == pid)
 			return info;
 		info = info->next;
 	}
@@ -817,7 +819,7 @@ static proc_info_t *proc_info_get(const pid_t pid)
  */
 static void proc_info_free(const pid_t pid)
 {
-	size_t i = proc_info_hash(pid);
+	const size_t i = proc_info_hash(pid);
 	proc_info_t *info = proc_info[i];
 
 	while (info) {
@@ -864,7 +866,8 @@ static proc_info_t const *proc_info_update(const pid_t pid)
 
 	if (info == &no_info)
 		return &no_info;
-	if ((newcmd = proc_cmdline(pid)) == NULL)
+	newcmd = proc_cmdline(pid);
+	if (!newcmd)
 		return &no_info;
 
 	free(info->cmdline);
@@ -879,7 +882,7 @@ static proc_info_t const *proc_info_update(const pid_t pid)
  */
 static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 {
-	size_t i = proc_info_hash(pid);
+	const size_t i = proc_info_hash(pid);
 	proc_info_t *info;
 	char *cmdline;
 
@@ -895,8 +898,9 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 		info = info->next;
 	}
 
-	if (info == NULL) {
-		if ((info = calloc(1, sizeof(proc_info_t))) == NULL) {
+	if (!info) {
+		info = calloc(1, sizeof(proc_info_t));
+		if (!info) {
 			fprintf(stderr, "Cannot allocate all proc info\n");
 			free(cmdline);
 			return NULL;
@@ -931,7 +935,8 @@ static void proc_thread_info_add(const pid_t pid)
 
 	snprintf(path, sizeof(path), "/proc/%i/task", pid);
 
-	if ((dir = opendir(path)) == NULL)
+	dir = opendir(path);
+	if (!dir)
 		return;
 
 	while ((dirent = readdir(dir))) {
@@ -957,7 +962,8 @@ static int proc_info_load(void)
 	DIR *dir;
 	struct dirent *dirent;
 
-	if ((dir = opendir("/proc")) == NULL)
+	dir = opendir("/proc");
+	if (!dir)
 		return -1;
 
 	while ((dirent = readdir(dir))) {
@@ -983,7 +989,7 @@ static char *extra_info(const uid_t uid)
 
 	*buf = '\0';
 	if (opt_flags & OPT_EXTRA) {
-		proc_info_t *info = proc_info_get(uid);
+		const proc_info_t *info = proc_info_get(uid);
 
 		if (info && info->uid != NULL_UID)
 			snprintf(buf, sizeof(buf), "%6d %-6.6s ", info->uid, get_tty(info->tty));
@@ -1088,7 +1094,8 @@ static int monitor(const int sock)
 			return 0;
 		}
 		if (len == -1) {
-			int err = errno;
+			const int err = errno;
+
 			switch (err) {
 			case EINTR:
 				return 0;
@@ -1346,7 +1353,7 @@ static int monitor(const int sock)
 					pid = proc_ev->event_data.comm.process_pid;
 					info1 = proc_info_get(pid);
 					comm = proc_comm(pid);
-					if (comm == NULL)
+					if (!comm)
 						break;
 					row_increment();
 
@@ -1426,7 +1433,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		int c = getopt(argc, argv, "dD:e:hlrsSqx");
+		const int c = getopt(argc, argv, "dD:e:hlrsSqx");
 		if (c == -1)
 			break;
 		switch (c) {
