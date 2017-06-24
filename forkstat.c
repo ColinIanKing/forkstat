@@ -285,10 +285,12 @@ err:
  */
 static void get_extra(const pid_t pid, proc_info_t *info)
 {
-	FILE *fp;
-	char path[PATH_MAX];
-	struct stat buf;
+	ssize_t ret;
 	long dev;
+	int fd;
+	char path[PATH_MAX];
+	char buffer[4096];
+	struct stat buf;
 
 	info->uid = NULL_UID;
 	info->gid = NULL_GID;
@@ -298,18 +300,22 @@ static void get_extra(const pid_t pid, proc_info_t *info)
 		return;
 
 	snprintf(path, sizeof(path), "/proc/%u/stat", pid);
-	if (stat(path, &buf) == 0) {
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		return;
+
+	if (fstat(fd, &buf) == 0) {
 		info->uid = buf.st_uid;
 		info->gid = buf.st_gid;
 	}
 
-	fp = fopen(path, "r");
-	if (!fp)
+	ret = read(fd, buffer, sizeof(buffer));
+	(void)close(fd);
+	if (ret < 0)
 		return;
-	if (fscanf(fp, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1) {
+
+	if (sscanf(buffer, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1)
 		info->tty = (dev_t)dev;
-	}
-	fclose(fp);
 }
 
 /*
