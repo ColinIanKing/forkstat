@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH FORKSTAT 8 "21 June, 2017"
+.TH FORKSTAT 8 "24 June, 2017"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -45,12 +45,12 @@ root privilege.
 
 Forkstat will display several columns of process related information:
 .TS
-l lw(5i).
+l l.
 \fBTitle	Description\fR
 Time	When the fork/exec/exit event occurred.
 Event	Type of event.
 PID	Process or thread ID.
-Info	Parent or child if a fork, or exit value.
+Info	Parent or child if a fork, or process exit(2) value.
 Duration	T{
 On exit, the duration the command ran for in seconds.
 Process	The process name. The name will be in [ ] brackets if it is a kernel thread.
