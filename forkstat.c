@@ -1313,9 +1313,12 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_PTRC)) {
 					const bool attach = (proc_ev->event_data.ptrace.tracer_pid != 0);
 
+#if 0
 					pid = attach ? proc_ev->event_data.ptrace.tracer_pid :
 						       proc_ev->event_data.ptrace.process_pid;
+#else
 					pid = proc_ev->event_data.ptrace.process_pid;
+#endif
 					info1 = proc_info_get(pid);
 					row_increment();
 					printf("%s ptrce %*d %s%6s %8s %s%s%s\n",
