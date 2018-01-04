@@ -1,3 +1,13 @@
+forkstat (0.02.01-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * debian/control: update Standards-Version to 4.1.2
+  * ensure tty string never overflows, fixes gcc warning
+  * include <sys/uio.h> to fix clang warning
+  * Add -x option into mini help
+
+ -- Colin King <colin.king@canonical.com>  Thu, 4 Jan 2018 22:53:12 +0000
+
 forkstat (0.02.00-1) unstable; urgency=medium
 
   * Makefile: update version and change codename
