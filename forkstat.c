@@ -269,7 +269,7 @@ static char *get_tty(const dev_t dev)
 			continue;
 
 		if (buf.st_rdev == dev) {
-			snprintf(tty, sizeof(tty), "pts/%s", dirent->d_name);
+			snprintf(tty, sizeof(tty), "pts/%-11.11s", dirent->d_name);
 			break;
 		}
 	}
