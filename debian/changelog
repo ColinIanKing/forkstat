@@ -1,4 +1,4 @@
-forkstat (0.02.01-1) unstable; urgency=medium
+forkstat (0.02.02-1) unstable; urgency=medium
 
   * Makefile: bump version
   * debian/control: update Standards-Version to 4.1.2
