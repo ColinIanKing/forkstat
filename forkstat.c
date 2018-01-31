@@ -1431,7 +1431,7 @@ static int parse_ev(char *arg)
 int main(int argc, char * const argv[])
 {
 	size_t i;
-	int sock = -1, ret = EXIT_FAILURE;
+	int sock, ret = EXIT_FAILURE;
 	struct sigaction new_action;
 
 	for (;;) {
