@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2014-2017 Canonical, Ltd.
+# Copyright (C) 2014-2018 Canonical, Ltd.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-VERSION=0.02.01
+VERSION=0.02.02
 #
 # Version "Perspicacious Process Peeker"
 #
