@@ -1417,6 +1417,7 @@ static void show_help(char *const argv[])
 	printf("-d\tstrip off directory path from process name.\n"
 	       "-D\tspecify run duration in seconds.\n"
 	       "-e\tselect which events to monitor.\n"
+	       "-g\tshow glyphs for event types.\n"
 	       "-h\tshow this help.\n"
 	       "-l\tforce stdout line buffering.\n"
 	       "-r\trun with real time FIFO scheduler.\n"
