@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH FORKSTAT 8 "24 June, 2017"
+.TH FORKSTAT 8 "8 June, 2018"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -24,6 +24,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 .RI [ \-d ]
 .RI [ \-D ]
 .RI [ \-e ]
+.RI [ \-g ]
 .RI [ \-h ]
 .RI [ \-l ]
 .RI [ \-r ]
@@ -82,6 +83,10 @@ uid	uid/gid events
 sid	sid events
 all	all the events above
 .TE
+.TP
+.B \-g
+show glyph annotations of events, useful for easier identification of 
+different events.
 .TP
 .B \-h
 show brief help summary.

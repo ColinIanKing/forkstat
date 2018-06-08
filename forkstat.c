@@ -68,6 +68,7 @@
 #define OPT_QUIET		(0x00000010)	/* Run quietly */
 #define OPT_REALTIME		(0x00000020)	/* Run with Real Time scheduling */
 #define OPT_EXTRA		(0x00000040)	/* Show extra stats */
+#define OPT_GLYPH		(0x00000080)	/* Show glyphs */
 
 #define OPT_EV_FORK		(0x00000100)	/* Fork event */
 #define OPT_EV_EXEC		(0x00000200)	/* Exec event */
@@ -544,9 +545,10 @@ static void print_heading(void)
 
 	pid_size = pid_max_digits();
 
-	printf("Time     Event %*.*s %sInfo   Duration Process\n",
+	printf("Time     Event %*.*s %s%sInfo   Duration Process\n",
 		pid_size, pid_size, "PID",
-		(opt_flags & OPT_EXTRA) ? "   UID TTY    " : "");
+		(opt_flags & OPT_EXTRA) ? "   UID TTY    " : "",
+		(opt_flags & OPT_GLYPH) ? " " : "");
 }
 
 /*
@@ -1190,24 +1192,29 @@ static int monitor(const int sock)
 					(((opt_flags & OPT_EV_FORK) && !is_thread) ||
 					 ((opt_flags & OPT_EV_CLNE) && is_thread))) {
 					if (info1 != NULL && info2 != NULL) {
+						static signed char sqrstr[] = { 0xe2, 0x95, 0xb0, 00 };
+						static signed char teestr[] = { 0xe2, 0x94, 0xac, 00 };
 						char *type = is_thread ? "clone" : "fork";
+
 						row_increment();
-						printf("%s %-5.5s %*d %sparent %8s %s%s%s\n",
+						printf("%s %-5.5s %*d %s%sparent %8s %s%s%s\n",
 							when,
 							type,
 							pid_size, ppid,
 							extra_info(ppid),
+							(opt_flags & OPT_GLYPH) ? (char *)teestr : "",
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s %-5.5s %*d %s%6.6s %8s %s%s%s\n",
+						printf("%s %-5.5s %*d %s%s%6.6s %8s %s%s%s\n",
 							when,
 							type,
 							pid_size, pid,
 							extra_info(pid),
-							is_thread ? "thread" : "child",
+							(opt_flags & OPT_GLYPH) ? (char *)sqrstr : "",
+							is_thread ? "thread" : "child ",
 							"",
 							info1->kernel_thread ? "[" : "",
 							info2->cmdline,
@@ -1220,11 +1227,13 @@ static int monitor(const int sock)
 				pid = proc_ev->event_data.exec.process_pid;
 				info1 = proc_info_update(pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
+					static signed char exestr[] = { 0xe2, 0x86, 0x92, 00 };
 					row_increment();
-					printf("%s exec  %*d %s       %8s %s%s%s\n",
+					printf("%s exec  %*d %s%s       %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? (char *)exestr : "",
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1234,6 +1243,8 @@ static int monitor(const int sock)
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
+					static unsigned char extstr[] = { 0xe2, 0x87, 0xa5, 00 };
+
 					pid = proc_ev->event_data.exit.process_pid;
 					info1 = proc_info_get(pid);
 					if (info1->start.tv_sec) {
@@ -1249,10 +1260,11 @@ static int monitor(const int sock)
 						snprintf(duration, sizeof(duration), "unknown");
 					}
 					row_increment();
-					printf("%s exit  %*d %s%6d %8s %s%s%s\n",
+					printf("%s exit  %*d %s%s%6d %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? (char *)extstr : "",
 						proc_ev->event_data.exit.exit_code,
 						duration,
 						info1->kernel_thread ? "[" : "",
@@ -1268,10 +1280,11 @@ static int monitor(const int sock)
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
 					if (proc_ev->what == PROC_EVENT_UID) {
-						printf("%s uid   %*d %s%6s %8s %s%s%s\n",
+						printf("%s uid   %*d %s%s%6s %8s %s%s%s\n",
 							when,
 							pid_size, pid,
 							extra_info(pid),
+							(opt_flags & OPT_GLYPH) ? " " : "",
 							get_username(proc_ev->event_data.id.e.euid),
 							"",
 							info1->kernel_thread ? "[" : "",
@@ -1296,10 +1309,11 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
-					printf("%s sid   %*d %s%6d %8s %s%s%s\n",
+					printf("%s sid   %*d %s%s%6d %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? " " : "",
 						proc_ev->event_data.sid.process_pid,
 						"",
 						info1->kernel_thread ? "[" : "",
@@ -1312,13 +1326,16 @@ static int monitor(const int sock)
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
+					static unsigned char diestr[] = { 0xe2, 0x98, 0xa0, 00 };
+
 					pid = proc_ev->event_data.coredump.process_pid;
 					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s core  %*d %s       %8s %s%s%s\n",
+					printf("%s core  %*d %s%s       %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? (char *)diestr : "",
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1340,10 +1357,11 @@ static int monitor(const int sock)
 #endif
 					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s ptrce %*d %s%6s %8s %s%s%s\n",
+					printf("%s ptrce %*d %s%s%6s %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? " " : "",
 						attach ? "attach" : "detach",
 						"",
 						info1->kernel_thread ? "[" : "",
@@ -1356,6 +1374,8 @@ static int monitor(const int sock)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
+					static unsigned char comstr[] = { 0xe2, 0x86, 0xbb, 00 };
+
 					pid = proc_ev->event_data.comm.process_pid;
 					info1 = proc_info_get(pid);
 					comm = proc_comm(pid);
@@ -1363,10 +1383,12 @@ static int monitor(const int sock)
 						break;
 					row_increment();
 
-					printf("%s comm  %*d %s       %8s %s%s%s -> %s\n",
+					printf("%s comm  %*d %s%s%s       %8s %s%s%s -> %s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
+						(opt_flags & OPT_GLYPH) ? (char *)comstr : "",
+						"",
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1440,7 +1462,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		const int c = getopt(argc, argv, "dD:e:hlrsSqx");
+		const int c = getopt(argc, argv, "dD:e:ghlrsSqx");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1457,6 +1479,9 @@ int main(int argc, char * const argv[])
 		case 'e':
 			if (parse_ev(optarg) < 0)
 				exit(EXIT_FAILURE);
+			break;
+		case 'g':
+			opt_flags |= OPT_GLYPH;
 			break;
 		case 'h':
 			show_help(argv);
