@@ -421,6 +421,11 @@ static bool sane_proc_pid_info(void)
 	bool ret = true;
 	const char *ptr = pattern;
 
+	/* Fast check */
+	if (access("/run/systemd/container", R_OK) == 0)
+		return true;
+
+	/* Privileged slower check */
 	fp = fopen("/proc/1/environ", "r");
 	if (!fp)
 		return false;
