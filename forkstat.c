@@ -176,6 +176,9 @@ static proc_info_t no_info = {
  */
 static const int signals[] = {
 	/* POSIX.1-1990 */
+#ifdef SIGALRM
+	SIGALRM,
+#endif
 #ifdef SIGHUP
 	SIGHUP,
 #endif
