@@ -135,6 +135,13 @@ typedef struct {
 	const event_t stat;	/* stat enum */
 } ev_map_t;
 
+/* scaling factor */
+typedef struct {
+	const char ch;			/* Scaling suffix */
+	const uint32_t base;		/* Base of part following . point */
+	const uint64_t scale;		/* Amount to scale by */
+} time_scale_t;
+
 /* Mapping of event names to option flags and event_t types */
 static const ev_map_t ev_map[] = {
 	{ "fork", "Fork", 	OPT_EV_FORK,	STAT_FORK },
@@ -227,6 +234,38 @@ static const int signals[] = {
 };
 
 static proc_info_t *proc_info_get(pid_t pid);
+
+/* seconds scale suffixes, secs, mins, hours, etc */
+static const time_scale_t second_scales[] = {
+	{ 's',	1000, 1 },
+	{ 'm',	 600, 60 },
+	{ 'h',   600, 3600 },
+	{ 'd',  1000, 24 * 3600 },
+	{ 'w',  1000, 7 * 24 * 3600 },
+	{ 'y',  1000, 365 * 24 * 3600 },
+	{ ' ',  1000,  INT64_MAX },
+};
+
+/*
+ *  secs_to_str()
+ *	report seconds in different units.
+ */
+static char *secs_to_str(const double secs)
+{
+	static char buf[16];
+	size_t i;
+	double s = secs, fract;
+
+	for (i = 0; i < 5; i++) {
+		if (s <= second_scales[i + 1].scale)
+			break;
+	}
+	s /= second_scales[i].scale;
+	s += 0.0005;	/* Round up */
+	fract = (s * second_scales[i].base) - (double)((int)s * second_scales[i].base);
+	snprintf(buf, sizeof(buf), "%3u.%3.3u%c", (int)s, (int)fract, second_scales[i].ch);
+	return buf;
+}
 
 /*
  *  get_username()
@@ -888,6 +927,64 @@ static proc_info_t const *proc_info_update(const pid_t pid)
 }
 
 /*
+ *   proc_info_get_timeval()
+ *	get time when process started
+ */
+static void proc_info_get_timeval(const pid_t pid, struct timeval *tv)
+{
+	int fd, n;
+	unsigned long long starttime;
+	unsigned long jiffies;
+	char path[PATH_MAX];
+	char buffer[4096];
+	double uptime_secs, secs;
+	struct timeval now;
+
+	(void)snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+
+	fd = open("/proc/uptime", O_RDONLY);
+	if (fd < 0)
+		return;
+	if (read(fd, buffer, sizeof(buffer)) < 0) {
+		(void)close(fd);
+		return;
+	}
+	(void)close(fd);
+	n = sscanf(buffer, "%lg", &uptime_secs);
+	if (n != 1)
+		return;
+	if (uptime_secs < 0.0)
+		return;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		return;
+	if (read(fd, buffer, sizeof(buffer)) < 0) {
+		(void)close(fd);
+		return;
+	}
+	(void)close(fd);
+	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
+	if (n != 1)
+		return;
+
+	errno = 0;
+	jiffies = sysconf(_SC_CLK_TCK);
+	if (errno)
+		return;
+	secs = uptime_secs - ((double)starttime / (double)jiffies);
+	if (secs < 0.0)
+		return;
+
+	if (gettimeofday(&now, NULL) < 0)
+		return;
+
+	secs = timeval_to_double(&now) - secs;
+	tv->tv_sec = secs;
+	tv->tv_usec = (suseconds_t)secs % 1000000;
+}
+
+/*
  *   proc_info_add()
  *	add processes info of a given pid to the hash table
  */
@@ -923,13 +1020,7 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
 	info->pid = pid;
 	get_extra(pid, info);
 	info->kernel_thread = pid_a_kernel_thread(cmdline, pid);
-
-	if (tv)
-		info->start = *tv;
-	else {
-		info->start.tv_sec = 0;
-		info->start.tv_usec = 0;
-	}
+	info->start = *tv;
 
 	return info;
 }
@@ -938,7 +1029,7 @@ static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
  *  proc_thread_info_add()
  *	Add a processes' thread into proc cache
  */
-static void proc_thread_info_add(const pid_t pid)
+static void proc_thread_info_add(const pid_t pid, const struct timeval *const parent_tv)
 {
 	DIR *dir;
 	struct dirent *dirent;
@@ -953,11 +1044,15 @@ static void proc_thread_info_add(const pid_t pid)
 	while ((dirent = readdir(dir))) {
 		if (isdigit(dirent->d_name[0])) {
 			pid_t tpid;
+			struct timeval tv;
 
 			errno = 0;
 			tpid = (pid_t)strtol(dirent->d_name, NULL, 10);
-			if ((!errno) && (tpid != pid))
-				(void)proc_info_add(tpid, NULL);
+			if ((!errno) && (tpid != pid)) {
+				tv = *parent_tv;
+				proc_info_get_timeval(pid, &tv);
+				(void)proc_info_add(tpid, &tv);
+			}
 		}
 	}
 
@@ -980,12 +1075,15 @@ static int proc_info_load(void)
 	while ((dirent = readdir(dir))) {
 		if (isdigit(dirent->d_name[0])) {
 			pid_t pid;
+			struct timeval tv;
 
 			errno = 0;
 			pid = (pid_t)strtol(dirent->d_name, NULL, 10);
 			if (!errno) {
-				(void)proc_info_add(pid, NULL);
-				proc_thread_info_add(pid);
+				(void)memset(&tv, 0, sizeof(tv));
+				proc_info_get_timeval(pid, &tv);
+				(void)proc_info_add(pid, &tv);
+				proc_thread_info_add(pid, &tv);
 			}
 		}
 	}
@@ -1254,7 +1352,7 @@ static int monitor(const int sock)
 						}
 						d1 = timeval_to_double(&info1->start);
 						d2 = timeval_to_double(&tv);
-						snprintf(duration, sizeof(duration), "%8.3f", d2 - d1);
+						snprintf(duration, sizeof(duration), "%8s", secs_to_str(d2 - d1));
 					} else {
 						snprintf(duration, sizeof(duration), "unknown");
 					}
