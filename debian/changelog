@@ -1,3 +1,15 @@
+forkstat (0.02.04-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Add .travis.yml to make dist rule
+  * Makefile + debian/watch: produce a .xz tarball
+  * Fix checking on zero sized reads
+  * Add detection of first time all alive processes were started
+  * Use UTF-16 codes for glyphs
+  * Add travis build yaml file
+
+ -- Colin King <colin.king@canonical.com>  Tue, 10 Jul 2018 13:32:23 +0100
+
 forkstat (0.02.03-1) unstable; urgency=medium
 
   * Makefile: bump version
