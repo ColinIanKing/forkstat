@@ -1195,8 +1195,6 @@ static int monitor(const int sock)
 					(((opt_flags & OPT_EV_FORK) && !is_thread) ||
 					 ((opt_flags & OPT_EV_CLNE) && is_thread))) {
 					if (info1 != NULL && info2 != NULL) {
-						static signed char sqrstr[] = { 0xe2, 0x95, 0xb0, 00 };
-						static signed char teestr[] = { 0xe2, 0x94, 0xac, 00 };
 						char *type = is_thread ? "clone" : "fork";
 
 						row_increment();
@@ -1205,7 +1203,7 @@ static int monitor(const int sock)
 							type,
 							pid_size, ppid,
 							extra_info(ppid),
-							(opt_flags & OPT_GLYPH) ? (char *)teestr : "",
+							(opt_flags & OPT_GLYPH) ? "\u252c" : "",
 							"",
 							info1->kernel_thread ? "[" : "",
 							info1->cmdline,
@@ -1216,7 +1214,7 @@ static int monitor(const int sock)
 							type,
 							pid_size, pid,
 							extra_info(pid),
-							(opt_flags & OPT_GLYPH) ? (char *)sqrstr : "",
+							(opt_flags & OPT_GLYPH) ? "\u2570" : "",
 							is_thread ? "thread" : "child ",
 							"",
 							info1->kernel_thread ? "[" : "",
@@ -1230,13 +1228,12 @@ static int monitor(const int sock)
 				pid = proc_ev->event_data.exec.process_pid;
 				info1 = proc_info_update(pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
-					static signed char exestr[] = { 0xe2, 0x86, 0x92, 00 };
 					row_increment();
 					printf("%s exec  %*d %s%s       %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
-						(opt_flags & OPT_GLYPH) ? (char *)exestr : "",
+						(opt_flags & OPT_GLYPH) ? "\u2192" : "",
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1246,7 +1243,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
-					static unsigned char extstr[] = { 0xe2, 0x87, 0xa5, 00 };
 
 					pid = proc_ev->event_data.exit.process_pid;
 					info1 = proc_info_get(pid);
@@ -1267,7 +1263,7 @@ static int monitor(const int sock)
 						when,
 						pid_size, pid,
 						extra_info(pid),
-						(opt_flags & OPT_GLYPH) ? (char *)extstr : "",
+						(opt_flags & OPT_GLYPH) ? "\u21e5" : "",
 						proc_ev->event_data.exit.exit_code,
 						duration,
 						info1->kernel_thread ? "[" : "",
@@ -1329,7 +1325,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
-					static unsigned char diestr[] = { 0xe2, 0x98, 0xa0, 00 };
 
 					pid = proc_ev->event_data.coredump.process_pid;
 					info1 = proc_info_get(pid);
@@ -1338,7 +1333,7 @@ static int monitor(const int sock)
 						when,
 						pid_size, pid,
 						extra_info(pid),
-						(opt_flags & OPT_GLYPH) ? (char *)diestr : "",
+						(opt_flags & OPT_GLYPH) ? "\u2620" : "",
 						"",
 						info1->kernel_thread ? "[" : "",
 						info1->cmdline,
@@ -1377,7 +1372,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
-					static unsigned char comstr[] = { 0xe2, 0x86, 0xbb, 00 };
 
 					pid = proc_ev->event_data.comm.process_pid;
 					info1 = proc_info_get(pid);
@@ -1390,7 +1384,7 @@ static int monitor(const int sock)
 						when,
 						pid_size, pid,
 						extra_info(pid),
-						(opt_flags & OPT_GLYPH) ? (char *)comstr : "",
+						(opt_flags & OPT_GLYPH) ? "\u21bb" : "",
 						"",
 						"",
 						info1->kernel_thread ? "[" : "",
