@@ -932,20 +932,22 @@ static proc_info_t const *proc_info_update(const pid_t pid)
  */
 static void proc_info_get_timeval(const pid_t pid, struct timeval *tv)
 {
-	int fd, n;
+	int fd;
 	unsigned long long starttime;
 	unsigned long jiffies;
 	char path[PATH_MAX];
 	char buffer[4096];
 	double uptime_secs, secs;
 	struct timeval now;
+	ssize_t n;
 
 	(void)snprintf(path, sizeof(path), "/proc/%d/stat", pid);
 
 	fd = open("/proc/uptime", O_RDONLY);
 	if (fd < 0)
 		return;
-	if (read(fd, buffer, sizeof(buffer)) < 0) {
+	n = read(fd, buffer, sizeof(buffer));
+	if (n <= 0) {
 		(void)close(fd);
 		return;
 	}
@@ -959,7 +961,8 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval *tv)
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		return;
-	if (read(fd, buffer, sizeof(buffer)) < 0) {
+	n = read(fd, buffer, sizeof(buffer));
+	if (n <= 0) {
 		(void)close(fd);
 		return;
 	}
