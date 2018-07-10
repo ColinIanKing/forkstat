@@ -49,7 +49,7 @@ dist:
 	mkdir forkstat-$(VERSION)
 	cp -rp Makefile forkstat.c forkstat.8 mascot COPYING \
 		snapcraft forkstat-$(VERSION)
-	tar -zcf forkstat-$(VERSION).tar.gz forkstat-$(VERSION)
+	tar -Jcf forkstat-$(VERSION).tar.xz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
 .PHONEY: pdf
@@ -59,7 +59,7 @@ pdf:
 .PHONEY: clean
 clean:
 	rm -f forkstat forkstat.o forkstat.8.gz
-	rm -f forkstat-$(VERSION).tar.gz
+	rm -f forkstat-$(VERSION).tar.xz
 	rm -f forkstat.pdf
 
 .PHONEY: install
