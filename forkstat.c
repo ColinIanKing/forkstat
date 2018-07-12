@@ -1315,7 +1315,7 @@ static int monitor(const int sock)
 							type,
 							pid_size, pid,
 							extra_info(pid),
-							(opt_flags & OPT_GLYPH) ? "\u2570" : "",
+							(opt_flags & OPT_GLYPH) ? "\u2514" : "",
 							is_thread ? "thread" : "child ",
 							"",
 							info1->kernel_thread ? "[" : "",
