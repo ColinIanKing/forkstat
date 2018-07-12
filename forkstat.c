@@ -1298,7 +1298,7 @@ static int monitor(const int sock)
 					(((opt_flags & OPT_EV_FORK) && !is_thread) ||
 					 ((opt_flags & OPT_EV_CLNE) && is_thread))) {
 					if (info1 != NULL && info2 != NULL) {
-						char *type = is_thread ? "clone" : "fork";
+						const char * const type = is_thread ? "clone" : "fork";
 
 						row_increment();
 						(void)printf("%s %-5.5s %*d %s%sparent %8s %s%s%s\n",
@@ -1427,7 +1427,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_COREDUMP:
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
-
 					pid = proc_ev->event_data.coredump.process_pid;
 					info1 = proc_info_get(pid);
 					row_increment();
@@ -1474,7 +1473,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_COMM:
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
-
 					pid = proc_ev->event_data.comm.process_pid;
 					info1 = proc_info_get(pid);
 					comm = proc_comm(pid);
