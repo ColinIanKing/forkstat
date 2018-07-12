@@ -930,7 +930,7 @@ static proc_info_t const *proc_info_update(const pid_t pid)
  *   proc_info_get_timeval()
  *	get time when process started
  */
-static void proc_info_get_timeval(const pid_t pid, struct timeval *tv)
+static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
 {
 	int fd;
 	unsigned long long starttime;
