@@ -263,7 +263,8 @@ static char *secs_to_str(const double secs)
 	s /= second_scales[i].scale;
 	s += 0.0005;	/* Round up */
 	fract = (s * second_scales[i].base) - (double)((int)s * second_scales[i].base);
-	snprintf(buf, sizeof(buf), "%3u.%3.3u%c", (int)s, (int)fract, second_scales[i].ch);
+	(void)snprintf(buf, sizeof(buf), "%3u.%3.3u%c",
+		(int)s, (int)fract, second_scales[i].ch);
 	return buf;
 }
 
@@ -280,7 +281,7 @@ static char *get_username(const uid_t uid)
 	if (pwd)
 		return pwd->pw_name;
 
-	snprintf(buf, sizeof(buf), "%d", uid);
+	(void)snprintf(buf, sizeof(buf), "%d", uid);
 	return buf;
 }
 
@@ -307,12 +308,14 @@ static char *get_tty(const dev_t dev)
 		if (dirent->d_name[0] == '.')
 			continue;
 
-		snprintf(path, sizeof(path), "/dev/pts/%s", dirent->d_name);
+		(void)snprintf(path, sizeof(path), "/dev/pts/%s",
+			dirent->d_name);
 		if (stat(path, &buf) < 0)
 			continue;
 
 		if (buf.st_rdev == dev) {
-			snprintf(tty, sizeof(tty), "pts/%-11.11s", dirent->d_name);
+			(void)snprintf(tty, sizeof(tty), "pts/%-11.11s",
+				dirent->d_name);
 			break;
 		}
 	}
@@ -344,7 +347,7 @@ static void get_extra(const pid_t pid, proc_info_t * const info)
 	if (!(opt_flags & OPT_EXTRA))
 		return;
 
-	snprintf(path, sizeof(path), "/proc/%u/stat", pid);
+	(void)snprintf(path, sizeof(path), "/proc/%u/stat", pid);
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		return;
@@ -413,7 +416,7 @@ static pid_t get_parent_pid(const pid_t pid, bool * const is_thread)
 	char buffer[4096];
 
 	*is_thread = false;
-	snprintf(path, sizeof(path), "/proc/%u/status", pid);
+	(void)snprintf(path, sizeof(path), "/proc/%u/status", pid);
 	fp = fopen(path, "r");
 	if (!fp)
 		return 0;
@@ -587,7 +590,7 @@ static void print_heading(void)
 
 	pid_size = pid_max_digits();
 
-	printf("Time     Event %*.*s %s%sInfo   Duration Process\n",
+	(void)printf("Time     Event %*.*s %s%sInfo   Duration Process\n",
 		pid_size, pid_size, "PID",
 		(opt_flags & OPT_EXTRA) ? "   UID TTY    " : "",
 		(opt_flags & OPT_GLYPH) ? " " : "");
@@ -716,18 +719,18 @@ static void proc_stats_report(void)
 			n++;
 
 	if (!n) {
-		printf("\nNo statistics gathered.\n");
+		(void)printf("\nNo statistics gathered.\n");
 		return;
 	}
 
 	printf("\n");
 	for (i = 0; i < STAT_LAST; i++)
-		printf("%8s ", ev_map[i].label);
-	printf("   Total Process\n");
+		(void)printf("%8s ", ev_map[i].label);
+	(void)printf("   Total Process\n");
 
 	sorted = calloc(n, sizeof(proc_stats_t *));
 	if (!sorted) {
-		fprintf(stderr, "Cannot sort statistics, out of memory.\n");
+		(void)fprintf(stderr, "Cannot sort statistics, out of memory.\n");
 		return;
 	}
 
@@ -741,8 +744,8 @@ static void proc_stats_report(void)
 		stats = sorted[i];
 
 		for (j = 0; j < STAT_LAST; j++)
-			printf("%8" PRIu64 " ", stats->count[j]);
-		printf("%8" PRIu64 " %s\n", stats->total, stats->name);
+			(void)printf("%8" PRIu64 " ", stats->count[j]);
+		(void)printf("%8" PRIu64 " %s\n", stats->total, stats->name);
 	}
 	free(sorted);
 }
@@ -779,7 +782,7 @@ static char *proc_comm(const pid_t pid)
 	ssize_t ret;
 	char buffer[4096];
 
-	snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
+	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
 	if ((fd = open(buffer, O_RDONLY)) < 0) {
 		return NULL;
 	}
@@ -803,10 +806,9 @@ static char *proc_cmdline(const pid_t pid)
 	ssize_t ret;
 	char buffer[4096];
 
-	snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", pid);
-	if ((fd = open(buffer, O_RDONLY)) < 0) {
+	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", pid);
+	if ((fd = open(buffer, O_RDONLY)) < 0)
 		return proc_comm(pid);
-	}
 
 	(void)memset(buffer, 0, sizeof(buffer));
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
@@ -1012,7 +1014,7 @@ static proc_info_t *proc_info_add(const pid_t pid, const struct timeval * const 
 	if (!info) {
 		info = calloc(1, sizeof(proc_info_t));
 		if (!info) {
-			fprintf(stderr, "Cannot allocate all proc info\n");
+			(void)fprintf(stderr, "Cannot allocate all proc info\n");
 			free(cmdline);
 			return NULL;
 		}
@@ -1038,7 +1040,7 @@ static void proc_thread_info_add(const pid_t pid, const struct timeval *const pa
 	struct dirent *dirent;
 	char path[PATH_MAX];
 
-	snprintf(path, sizeof(path), "/proc/%i/task", pid);
+	(void)snprintf(path, sizeof(path), "/proc/%i/task", pid);
 
 	dir = opendir(path);
 	if (!dir)
@@ -1104,9 +1106,10 @@ static char *extra_info(const uid_t uid)
 		const proc_info_t *info = proc_info_get(uid);
 
 		if (info && info->uid != NULL_UID)
-			snprintf(buf, sizeof(buf), "%6d %-6.6s ", info->uid, get_tty(info->tty));
+			(void)snprintf(buf, sizeof(buf), "%6d %-6.6s ",
+				info->uid, get_tty(info->tty));
 		else
-			snprintf(buf, sizeof(buf), "%14s", "");
+			(void)snprintf(buf, sizeof(buf), "%14s", "");
 	}
 
 	return buf;
@@ -1135,7 +1138,7 @@ static int netlink_connect(void)
 	if ((sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR)) < 0) {
 		if (errno == EPROTONOSUPPORT)
 			return -EPROTONOSUPPORT;
-		fprintf(stderr, "socket failed: errno=%d (%s)\n",
+		(void)fprintf(stderr, "socket failed: errno=%d (%s)\n",
 			errno, strerror(errno));
 		return -1;
 	}
@@ -1146,7 +1149,7 @@ static int netlink_connect(void)
 	addr.nl_groups = CN_IDX_PROC;
 
 	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		fprintf(stderr, "bind failed: errno=%d (%s)\n",
+		(void)fprintf(stderr, "bind failed: errno=%d (%s)\n",
 			errno, strerror(errno));
 		(void)close(sock);
 		return -1;
@@ -1217,12 +1220,12 @@ static int monitor(const int sock)
 
 				now = time(NULL);
 				if (now == ((time_t) -1)) {
-					printf("--:--:-- recv ----- "
+					(void)printf("--:--:-- recv ----- "
 						"nobufs %8.8s (%s)\n",
 						"", strerror(err));
 				} else {
 					(void)localtime_r(&now, &tm);
-					printf("%2.2d:%2.2d:%2.2d recv ----- "
+					(void)printf("%2.2d:%2.2d:%2.2d recv ----- "
 						"nobufs %8.8s (%s)\n",
 						tm.tm_hour, tm.tm_min, tm.tm_sec, "",
 						strerror(err));
@@ -1230,7 +1233,7 @@ static int monitor(const int sock)
 				break;
 			}
 			default:
-				fprintf(stderr,"recv failed: errno=%d (%s)\n",
+				(void)fprintf(stderr,"recv failed: errno=%d (%s)\n",
 					err, strerror(err));
 				return -1;
 			}
@@ -1273,10 +1276,10 @@ static int monitor(const int sock)
 
 			now = time(NULL);
 			if (now == ((time_t) -1)) {
-				snprintf(when, sizeof(when), "--:--:--");
+				(void)snprintf(when, sizeof(when), "--:--:--");
 			} else {
 				(void)localtime_r(&now, &tm);
-				snprintf(when, sizeof(when), "%2.2d:%2.2d:%2.2d",
+				(void)snprintf(when, sizeof(when), "%2.2d:%2.2d:%2.2d",
 					tm.tm_hour, tm.tm_min, tm.tm_sec);
 			}
 
@@ -1287,9 +1290,8 @@ static int monitor(const int sock)
 				pid = proc_ev->event_data.fork.child_pid;
 				proc_stats_account(proc_ev->event_data.fork.parent_pid,
 					is_thread ? STAT_CLNE : STAT_FORK);
-				if (gettimeofday(&tv, NULL) < 0) {
+				if (gettimeofday(&tv, NULL) < 0)
 					(void)memset(&tv, 0, sizeof tv);
-				}
 				info1 = proc_info_get(ppid);
 				info2 = proc_info_add(pid, &tv);
 				if (!(opt_flags & OPT_QUIET) &&
@@ -1299,7 +1301,7 @@ static int monitor(const int sock)
 						char *type = is_thread ? "clone" : "fork";
 
 						row_increment();
-						printf("%s %-5.5s %*d %s%sparent %8s %s%s%s\n",
+						(void)printf("%s %-5.5s %*d %s%sparent %8s %s%s%s\n",
 							when,
 							type,
 							pid_size, ppid,
@@ -1310,7 +1312,7 @@ static int monitor(const int sock)
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 						row_increment();
-						printf("%s %-5.5s %*d %s%s%6.6s %8s %s%s%s\n",
+						(void)printf("%s %-5.5s %*d %s%s%6.6s %8s %s%s%s\n",
 							when,
 							type,
 							pid_size, pid,
@@ -1330,7 +1332,7 @@ static int monitor(const int sock)
 				info1 = proc_info_update(pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
-					printf("%s exec  %*d %s%s       %8s %s%s%s\n",
+					(void)printf("%s exec  %*d %s%s       %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1344,7 +1346,6 @@ static int monitor(const int sock)
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
-
 					pid = proc_ev->event_data.exit.process_pid;
 					info1 = proc_info_get(pid);
 					if (info1->start.tv_sec) {
@@ -1355,12 +1356,12 @@ static int monitor(const int sock)
 						}
 						d1 = timeval_to_double(&info1->start);
 						d2 = timeval_to_double(&tv);
-						snprintf(duration, sizeof(duration), "%8s", secs_to_str(d2 - d1));
+						(void)snprintf(duration, sizeof(duration), "%8s", secs_to_str(d2 - d1));
 					} else {
-						snprintf(duration, sizeof(duration), "unknown");
+						(void)snprintf(duration, sizeof(duration), "unknown");
 					}
 					row_increment();
-					printf("%s exit  %*d %s%s%6d %8s %s%s%s\n",
+					(void)printf("%s exit  %*d %s%s%6d %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1380,7 +1381,7 @@ static int monitor(const int sock)
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
 					if (proc_ev->what == PROC_EVENT_UID) {
-						printf("%s uid   %*d %s%s%6s %8s %s%s%s\n",
+						(void)printf("%s uid   %*d %s%s%6s %8s %s%s%s\n",
 							when,
 							pid_size, pid,
 							extra_info(pid),
@@ -1391,7 +1392,7 @@ static int monitor(const int sock)
 							info1->cmdline,
 							info1->kernel_thread ? "]" : "");
 					} else {
-						printf("%s gid   %*d %6s %s%8s %s%s%s\n",
+						(void)printf("%s gid   %*d %6s %s%8s %s%s%s\n",
 							when,
 							pid_size, pid,
 							extra_info(pid),
@@ -1409,7 +1410,7 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
-					printf("%s sid   %*d %s%s%6d %8s %s%s%s\n",
+					(void)printf("%s sid   %*d %s%s%6d %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1430,7 +1431,7 @@ static int monitor(const int sock)
 					pid = proc_ev->event_data.coredump.process_pid;
 					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s core  %*d %s%s       %8s %s%s%s\n",
+					(void)printf("%s core  %*d %s%s       %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1456,7 +1457,7 @@ static int monitor(const int sock)
 #endif
 					info1 = proc_info_get(pid);
 					row_increment();
-					printf("%s ptrce %*d %s%s%6s %8s %s%s%s\n",
+					(void)printf("%s ptrce %*d %s%s%6s %8s %s%s%s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1481,7 +1482,7 @@ static int monitor(const int sock)
 						break;
 					row_increment();
 
-					printf("%s comm  %*d %s%s%s       %8s %s%s%s -> %s\n",
+					(void)printf("%s comm  %*d %s%s%s       %8s %s%s%s -> %s\n",
 						when,
 						pid_size, pid,
 						extra_info(pid),
@@ -1510,9 +1511,9 @@ static int monitor(const int sock)
  */
 static void show_help(char *const argv[])
 {
-	printf("%s, version %s\n\n", APP_NAME, VERSION);
-	printf("usage: %s [-d|-D|-e|-E|-g|-h|-l|-s|-S|-q]\n", argv[0]);
-	printf("-d\tstrip off directory path from process name.\n"
+	(void)printf("%s, version %s\n\n", APP_NAME, VERSION);
+	(void)printf("usage: %s [-d|-D|-e|-E|-g|-h|-l|-s|-S|-q]\n", argv[0]);
+	(void)printf("-d\tstrip off directory path from process name.\n"
 	       "-D\tspecify run duration in seconds.\n"
 	       "-e\tselect which events to monitor.\n"
 	       "-E\tequivalent to -e all.\n"
@@ -1545,10 +1546,10 @@ static int parse_ev(char * const arg)
 			}
 		}
 		if (!found) {
-			fprintf(stderr, "Unknown event '%s'. Allowed events:", token);
+			(void)fprintf(stderr, "Unknown event '%s'. Allowed events:", token);
 			for (i = 0; ev_map[i].event; i++)
-				printf(" %s", ev_map[i].event);
-			printf("\n");
+				(void)printf(" %s", ev_map[i].event);
+			(void)printf("\n");
 			return -1;
 		}
 	}
@@ -1572,7 +1573,7 @@ int main(int argc, char * const argv[])
 		case 'D':
 			opt_duration = strtol(optarg, NULL, 10);
 			if (opt_duration <= 0) {
-				fprintf(stderr, "Illegal duration.\n");
+				(void)fprintf(stderr, "Illegal duration.\n");
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -1604,7 +1605,7 @@ int main(int argc, char * const argv[])
 			break;
 		case 'l':
 			if (setvbuf(stdout, NULL, _IOLBF, 0) != 0) {
-				fprintf(stderr, "Error setting line buffering.\n");
+				(void)fprintf(stderr, "Error setting line buffering.\n");
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -1621,7 +1622,7 @@ int main(int argc, char * const argv[])
 		opt_flags |= (OPT_EV_FORK | OPT_EV_EXEC | OPT_EV_EXIT | OPT_EV_CLNE | OPT_EV_PTRC);
 
 	if (geteuid() != 0) {
-		fprintf(stderr, "Need to run with root access.\n");
+		(void)fprintf(stderr, "Need to run with root access.\n");
 		goto abort_sock;
 	}
 
@@ -1632,7 +1633,7 @@ int main(int argc, char * const argv[])
 		new_action.sa_flags = 0;
 
 		if (sigaction(signals[i], &new_action, NULL) < 0) {
-			fprintf(stderr, "sigaction failed: errno=%d (%s)\n",
+			(void)fprintf(stderr, "sigaction failed: errno=%d (%s)\n",
 				errno, strerror(errno));
 			goto abort_sock;
 		}
@@ -1641,7 +1642,7 @@ int main(int argc, char * const argv[])
 	sane_procs = sane_proc_pid_info();
 
 	if (proc_info_load() < 0) {
-		fprintf(stderr, "Cannot load process cache. Is /proc mounted?\n");
+		(void)fprintf(stderr, "Cannot load process cache. Is /proc mounted?\n");
 		goto abort_sock;
 	}
 
@@ -1652,7 +1653,7 @@ int main(int argc, char * const argv[])
 
 		max_prio = sched_get_priority_max(policy);
 		if (max_prio < 0) {
-			fprintf(stderr, "sched_get_priority_max failed: errno=%d (%s)\n",
+			(void)fprintf(stderr, "sched_get_priority_max failed: errno=%d (%s)\n",
 				errno, strerror(errno));
 			goto abort_sock;
 		}
@@ -1660,7 +1661,7 @@ int main(int argc, char * const argv[])
 		(void)memset(&param, 0, sizeof(param));
 		param.sched_priority = max_prio;
 		if (sched_setscheduler(getpid(), policy, &param) < 0) {
-			fprintf(stderr, "sched_setscheduler failed: errno=%d (%s)\n",
+			(void)fprintf(stderr, "sched_setscheduler failed: errno=%d (%s)\n",
 				errno, strerror(errno));
 			goto abort_sock;
 		}
@@ -1668,7 +1669,7 @@ int main(int argc, char * const argv[])
 
 	sock = netlink_connect();
 	if (sock == -EPROTONOSUPPORT) {
-		fprintf(stderr, "Cannot show process activity with this kernel, netlink required.\n");
+		(void)fprintf(stderr, "Cannot show process activity with this kernel, netlink required.\n");
 		goto abort_sock;
 	}
 	/* Handle other failures */
@@ -1676,13 +1677,13 @@ int main(int argc, char * const argv[])
 		goto abort_sock;
 
 	if (netlink_listen(sock) < 0) {
-		fprintf(stderr, "netlink listen failed: errno=%d (%s)\n",
+		(void)fprintf(stderr, "netlink listen failed: errno=%d (%s)\n",
 			errno, strerror(errno));
 		goto close_abort;
 	}
 
 	if (opt_duration > 0)
-		alarm(opt_duration);
+		(void)alarm(opt_duration);
 
 	if (monitor(sock) == 0) {
 		ret = EXIT_SUCCESS;
