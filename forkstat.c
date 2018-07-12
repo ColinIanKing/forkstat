@@ -328,7 +328,7 @@ err:
  *	note that this does not cater of changes
  *	because of use of an effective ID.
  */
-static void get_extra(const pid_t pid, proc_info_t *info)
+static void get_extra(const pid_t pid, proc_info_t * const info)
 {
 	ssize_t ret;
 	long dev;
@@ -404,7 +404,7 @@ ret:
  *	get parent pid and set is_thread to true if process
  *	not forked but a newly created thread
  */
-static pid_t get_parent_pid(const pid_t pid, bool *is_thread)
+static pid_t get_parent_pid(const pid_t pid, bool * const is_thread)
 {
 	FILE *fp;
 	pid_t tgid = 0, ppid = 0;
@@ -501,7 +501,7 @@ static bool sane_proc_pid_info(void)
  *  pid_a_kernel_thread
  *	is a process a kernel thread?
  */
-static bool pid_a_kernel_thread(const char *task, const pid_t id)
+static bool pid_a_kernel_thread(const char * const task, const pid_t id)
 {
 	if (sane_procs) {
 		return getpgid(id) == 0;
@@ -612,7 +612,7 @@ static void row_increment(void)
  *  timeval_to_double()
  *      convert timeval to seconds as a double
  */
-static inline double timeval_to_double(const struct timeval *tv)
+static inline double timeval_to_double(const struct timeval * const tv)
 {
 	return (double)tv->tv_sec + ((double)tv->tv_usec / 1000000.0);
 }
@@ -690,8 +690,8 @@ static void proc_stats_account(const pid_t pid, const event_t event)
  */
 static int stats_cmp(const void *v1, const void *v2)
 {
-	proc_stats_t *const *s1 = (proc_stats_t *const *)v1;
-	proc_stats_t *const *s2 = (proc_stats_t *const *)v2;
+	const proc_stats_t *const *s1 = (const proc_stats_t *const *)v1;
+	const proc_stats_t *const *s2 = (const proc_stats_t *const *)v2;
 
 	if ((*s2)->total == (*s1)->total)
 		return 0;
@@ -911,7 +911,7 @@ static void proc_info_unload(void)
  */
 static proc_info_t const *proc_info_update(const pid_t pid)
 {
-	proc_info_t *info = proc_info_get(pid);
+	proc_info_t * const info = proc_info_get(pid);
 	char *newcmd;
 
 	if (info == &no_info)
@@ -991,7 +991,7 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
  *   proc_info_add()
  *	add processes info of a given pid to the hash table
  */
-static proc_info_t *proc_info_add(const pid_t pid, struct timeval *tv)
+static proc_info_t *proc_info_add(const pid_t pid, const struct timeval * const tv)
 {
 	const size_t i = proc_info_hash(pid);
 	proc_info_t *info;
@@ -1530,7 +1530,7 @@ static void show_help(char *const argv[])
  *  parse_ev()
  *	parse event strings, turn into flag mask
  */
-static int parse_ev(char *arg)
+static int parse_ev(char * const arg)
 {
 	char *str, *token;
 
