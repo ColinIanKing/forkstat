@@ -24,6 +24,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 .RI [ \-d ]
 .RI [ \-D ]
 .RI [ \-e ]
+.RI [ \-E ]
 .RI [ \-g ]
 .RI [ \-h ]
 .RI [ \-l ]
@@ -83,6 +84,9 @@ uid	uid/gid events
 sid	sid events
 all	all the events above
 .TE
+.TP
+.B \-E
+enable all events, equivalent to \-e all
 .TP
 .B \-g
 show glyph annotations of events, useful for easier identification of 

@@ -1511,10 +1511,11 @@ static int monitor(const int sock)
 static void show_help(char *const argv[])
 {
 	printf("%s, version %s\n\n", APP_NAME, VERSION);
-	printf("usage: %s [-d|-D|-e|-h|-l|-s|-S|-q]\n", argv[0]);
+	printf("usage: %s [-d|-D|-e|-E|-g|-h|-l|-s|-S|-q]\n", argv[0]);
 	printf("-d\tstrip off directory path from process name.\n"
 	       "-D\tspecify run duration in seconds.\n"
 	       "-e\tselect which events to monitor.\n"
+	       "-E\tequivalent to -e all.\n"
 	       "-g\tshow glyphs for event types.\n"
 	       "-h\tshow this help.\n"
 	       "-l\tforce stdout line buffering.\n"
@@ -1561,7 +1562,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		const int c = getopt(argc, argv, "dD:e:ghlrsSqx");
+		const int c = getopt(argc, argv, "dD:e:EghlrsSqx");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1578,6 +1579,9 @@ int main(int argc, char * const argv[])
 		case 'e':
 			if (parse_ev(optarg) < 0)
 				exit(EXIT_FAILURE);
+			break;
+		case 'E':
+			opt_flags |= OPT_EV_ALL;
 			break;
 		case 'g':
 			opt_flags |= OPT_GLYPH;
