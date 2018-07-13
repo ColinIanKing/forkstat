@@ -1,3 +1,19 @@
+forkstat (0.02.05-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Manual, change -e all to -E in example to show alternate form
+  * Reformat some lines, comments and overly wide scanf
+  * Minor code clean ups
+  * Ensure all fields in no_info are initialized
+  * Manual: Fix process table information formatting
+  * Voidify function returns
+  * Add more constifications
+  * Add -E (enable all events) option
+  * PROC_EVENT_COREDUMP has been introduced in kernel version 3.10
+  * Replace curved corner glyph with square corner
+
+ -- Colin King <colin.king@canonical.com>  Fri, 13 Jul 2018 07:49:44 +0100
+
 forkstat (0.02.04-1) unstable; urgency=medium
 
   * Makefile: bump version
