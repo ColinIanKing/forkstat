@@ -433,11 +433,10 @@ static pid_t get_parent_pid(const pid_t pid, bool * const is_thread)
 			}
 		}
 		if (!strncmp(buffer, "PPid:", 5)) {
-			if (sscanf(buffer + 5, "%u", &ppid) == 1) {
+			if (sscanf(buffer + 5, "%u", &ppid) == 1)
 				got |= GOT_PPID;
-			} else {
+			else
 				ppid = 0;
-			}
 		}
 	}
 	(void)fclose(fp);
@@ -743,6 +742,7 @@ static void proc_stats_report(void)
 	qsort(sorted, n, sizeof(proc_stats_t *), stats_cmp);
 	for (i = 0; i < n; i++) {
 		int j;
+
 		stats = sorted[i];
 
 		for (j = 0; j < STAT_LAST; j++)
@@ -785,9 +785,8 @@ static char *proc_comm(const pid_t pid)
 	char buffer[4096];
 
 	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
-	if ((fd = open(buffer, O_RDONLY)) < 0) {
+	if ((fd = open(buffer, O_RDONLY)) < 0)
 		return NULL;
-	}
 	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
 		(void)close(fd);
 		return NULL;
@@ -1207,9 +1206,9 @@ static int monitor(const int sock)
 		ssize_t len;
 		char __attribute__ ((aligned(NLMSG_ALIGNTO)))buf[4096];
 
-		if ((len = recv(sock, buf, sizeof(buf), 0)) == 0) {
+		if ((len = recv(sock, buf, sizeof(buf), 0)) == 0)
 			return 0;
-		}
+
 		if (len == -1) {
 			const int err = errno;
 
