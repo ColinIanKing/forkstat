@@ -137,9 +137,9 @@ typedef struct {
 
 /* scaling factor */
 typedef struct {
-	const char ch;			/* Scaling suffix */
-	const uint32_t base;		/* Base of part following . point */
-	const uint64_t scale;		/* Amount to scale by */
+	const char ch;		/* Scaling suffix */
+	const uint32_t base;	/* Base of part following . point */
+	const uint64_t scale;	/* Amount to scale by */
 } time_scale_t;
 
 /* Mapping of event names to option flags and event_t types */
@@ -970,7 +970,8 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
 		return;
 	}
 	(void)close(fd);
-	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
+	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u "
+		"%*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
 	if (n != 1)
 		return;
 
