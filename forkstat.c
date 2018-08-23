@@ -910,7 +910,7 @@ static void proc_info_unload(void)
 
 /*
  *  proc_info_update()
- *	uopdate process name, for example, if exec has occurred
+ *	update process name, for example, if exec has occurred
  */
 static proc_info_t const *proc_info_update(const pid_t pid)
 {
