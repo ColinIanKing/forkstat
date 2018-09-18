@@ -93,13 +93,13 @@
 /* /proc info cache */
 typedef struct proc_info {
 	struct proc_info *next;	/* next proc info in hashed linked list */
+	char	*cmdline;	/* /proc/pid/cmdline text */
+	dev_t	tty;		/* TTY dev */
 	pid_t	pid;		/* Process ID */
 	uid_t	uid;		/* User ID */
 	gid_t	gid;		/* GUID */
-	dev_t	tty;		/* TTY dev */
-	char	*cmdline;	/* /proc/pid/cmdline text */
-	bool	kernel_thread;	/* true if a kernel thread */
 	struct timeval start;	/* time when process started */
+	bool	kernel_thread;	/* true if a kernel thread */
 } proc_info_t;
 
 /* For kernel task checking */
@@ -124,8 +124,8 @@ typedef enum {
 typedef struct proc_stats {
 	struct proc_stats *next;/* Next one in list */
 	char *name;		/* Process name */
-	uint64_t count[STAT_LAST]; /* Tally count */
 	uint64_t total;		/* Tally count total of all counts */
+	uint64_t count[STAT_LAST]; /* Tally count */
 } proc_stats_t;
 
 typedef struct {
