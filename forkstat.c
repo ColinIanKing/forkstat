@@ -407,7 +407,7 @@ static char *get_tty(const dev_t dev)
 	}
 
 	(void)closedir(dir);
-err:	
+err:
 	tty[TTY_NAME_LEN - 1 ] = '\0';
 
 	/*
@@ -423,7 +423,7 @@ err:
 	tni->dev = dev;
 	tni->next = tty_name_info[hash];
 	tty_name_info[hash] = tni;
-	
+
 	return tni->tty_name;
 }
 
