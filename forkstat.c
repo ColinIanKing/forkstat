@@ -55,6 +55,7 @@
 
 #define APP_NAME		"forkstat"
 #define MAX_PIDS		(32769)		/* Hash Max PIDs */
+#define MAX_UIDS		(1237)		/* Hash Max UIDs */
 
 #define NULL_PID		(pid_t)(-1)
 #define NULL_UID		(uid_t)(-1)
@@ -107,6 +108,13 @@ typedef struct {
 	char *task;		/* Name of kernel task */
 	size_t len;		/* Length */
 } kernel_task_info;
+
+/* For UID to name cache */
+typedef struct uid_name_info {
+	struct uid_name_info *next;
+	char	*name;		/* User name */
+	uid_t	uid;		/* User ID */
+} uid_name_info_t;
 
 typedef enum {
 	STAT_FORK = 0,		/* Fork */
@@ -163,6 +171,7 @@ static volatile bool stop_recv;			/* sighandler stop flag */
 static bool sane_procs;				/* true if not inside a container */
 static proc_info_t *proc_info[MAX_PIDS];	/* Proc hash table */
 static proc_stats_t *proc_stats[MAX_PIDS];	/* Proc stats hash table */
+static uid_name_info_t *uid_name_info[MAX_UIDS];/* UID to name hash table */
 static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
 static long int opt_duration = -1;		/* duration, < 0 means run forever */
@@ -278,13 +287,66 @@ static char *get_username(const uid_t uid)
 {
 	struct passwd *pwd;
 	static char buf[12];
+	const size_t hash = uid % MAX_UIDS;
+	uid_name_info_t *uni = uid_name_info[hash];
+	char *name;
+
+	/*
+	 *  Try and find it in cache first
+	 */
+	while (uni) {
+		if (uni->uid == uid)
+			return uni->name;
+		uni = uni->next;
+	}
 
 	pwd = getpwuid(uid);
-	if (pwd)
-		return pwd->pw_name;
+	if (pwd) {
+		name = pwd->pw_name;
+	} else {
+		(void)snprintf(buf, sizeof(buf), "%d", uid);
+		name = buf;
+	}
 
-	(void)snprintf(buf, sizeof(buf), "%d", uid);
-	return buf;
+	/*
+	 *  Try and allocate a cached uid name mapping
+	 *  but don't worry if we can't as we can look
+	 *  it up if we run out of memory next time round
+	 */
+	uni = malloc(sizeof(*uni));
+	if (!uni)
+		return name;
+	uni->name = strdup(name);
+	if (!uni->name) {
+		free(uni);
+		return name;
+	}
+	uni->uid = uid;
+	uni->next = uid_name_info[hash];
+	uid_name_info[hash] = uni;
+
+	return uni->name;
+}
+
+/*
+ *  uid_name_info_free()
+ *	free uid name info cache
+ */
+static void uid_name_info_free(void)
+{
+	size_t i;
+
+	for (i = 0; i < MAX_UIDS; i++) {
+		uid_name_info_t *uni = uid_name_info[i];
+
+		while (uni) {
+			uid_name_info_t *next = uni->next;
+
+			free(uni->name);
+			free(uni);
+			uni = next;
+		}
+	}
 }
 
 /*
@@ -1108,8 +1170,9 @@ static char *extra_info(const uid_t uid)
 		const proc_info_t *info = proc_info_get(uid);
 
 		if (info && info->uid != NULL_UID)
-			(void)snprintf(buf, sizeof(buf), "%6d %-6.6s ",
-				info->uid, get_tty(info->tty));
+			(void)snprintf(buf, sizeof(buf), "%6s %-6.6s ",
+				get_username(info->uid),
+				get_tty(info->tty));
 		else
 			(void)snprintf(buf, sizeof(buf), "%14s", "");
 	}
@@ -1695,6 +1758,7 @@ close_abort:
 abort_sock:
 	proc_info_unload();
 	proc_stats_free();
+	uid_name_info_free();
 
 	exit(ret);
 }
