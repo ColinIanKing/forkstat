@@ -56,6 +56,9 @@
 #define APP_NAME		"forkstat"
 #define MAX_PIDS		(32769)		/* Hash Max PIDs */
 #define MAX_UIDS		(1237)		/* Hash Max UIDs */
+#define MAX_TTYS		(199)		/* Hash Max TTYs */
+
+#define TTY_NAME_LEN		(16)		/* Max TTY name length */
 
 #define NULL_PID		(pid_t)(-1)
 #define NULL_UID		(uid_t)(-1)
@@ -116,6 +119,13 @@ typedef struct uid_name_info {
 	uid_t	uid;		/* User ID */
 } uid_name_info_t;
 
+/* For tty to tty name cache */
+typedef struct tty_name_info {
+	struct tty_name_info *next;
+	dev_t	dev;		/* tty device */
+	char	tty_name[TTY_NAME_LEN];	/* tty name */
+} tty_name_info_t;
+
 typedef enum {
 	STAT_FORK = 0,		/* Fork */
 	STAT_EXEC,		/* Exec */
@@ -172,6 +182,7 @@ static bool sane_procs;				/* true if not inside a container */
 static proc_info_t *proc_info[MAX_PIDS];	/* Proc hash table */
 static proc_stats_t *proc_stats[MAX_PIDS];	/* Proc stats hash table */
 static uid_name_info_t *uid_name_info[MAX_UIDS];/* UID to name hash table */
+static tty_name_info_t *tty_name_info[MAX_TTYS];/* TTY dev to name hash table */
 static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
 static long int opt_duration = -1;		/* duration, < 0 means run forever */
@@ -357,7 +368,18 @@ static char *get_tty(const dev_t dev)
 {
 	DIR *dir;
 	struct dirent *dirent;
-	static char tty[16];
+	static char tty[TTY_NAME_LEN];
+	const size_t hash = ((size_t)dev) % MAX_TTYS;
+	tty_name_info_t *tni = tty_name_info[hash];
+
+	/*
+	 *  Try and find it in cache first
+	 */
+	while (tni) {
+		if (tni->dev == dev)
+			return tni->tty_name;
+		tni = tni->next;
+	}
 
 	strncpy(tty, "?", sizeof(tty));
 
@@ -385,8 +407,44 @@ static char *get_tty(const dev_t dev)
 	}
 
 	(void)closedir(dir);
-err:
-	return tty;
+err:	
+	tty[TTY_NAME_LEN - 1 ] = '\0';
+
+	/*
+	 *  Try to add a new tty name to cache,
+	 *  this is not critical if we can't, just
+	 *  give up and lookup again next time
+	 */
+	tni = malloc(sizeof(*tni));
+	if (!tni)
+		return tty;
+
+	(void)strncpy(tni->tty_name, tty, sizeof(tni->tty_name));
+	tni->dev = dev;
+	tni->next = tty_name_info[hash];
+	tty_name_info[hash] = tni;
+	
+	return tni->tty_name;
+}
+
+/*
+ *  tty_name_info_free()
+ *	free tty name info cache
+ */
+static void tty_name_info_free(void)
+{
+	size_t i;
+
+	for (i = 0; i < MAX_TTYS; i++) {
+		tty_name_info_t *tni = tty_name_info[i];
+
+		while (tni) {
+			tty_name_info_t *next = tni->next;
+
+			free(tni);
+			tni = next;
+		}
+	}
 }
 
 /*
@@ -691,7 +749,6 @@ static inline size_t proc_info_hash(const pid_t pid)
 {
 	return pid % MAX_PIDS;
 }
-
 
 /*
  *  proc_name_hash()
@@ -1179,7 +1236,6 @@ static char *extra_info(const uid_t uid)
 
 	return buf;
 }
-
 
 /*
  *  handle_sig()
@@ -1759,6 +1815,7 @@ abort_sock:
 	proc_info_unload();
 	proc_stats_free();
 	uid_name_info_free();
+	tty_name_info_free();
 
 	exit(ret);
 }
