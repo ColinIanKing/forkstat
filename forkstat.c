@@ -766,6 +766,10 @@ static inline unsigned int proc_name_hash(const char *str)
 	return hash % MAX_PIDS;
 }
 
+/*
+ *  proc_stats_account()
+ *	perform per process accounting
+ */
 static void proc_stats_account(const pid_t pid, const event_t event)
 {
 	unsigned int h;
@@ -1218,6 +1222,10 @@ static int proc_info_load(void)
 	return 0;
 }
 
+/*
+ *  extra_info()
+ *	format up extra process information if selected
+ */
 static char *extra_info(const uid_t uid)
 {
 	static char buf[20];
