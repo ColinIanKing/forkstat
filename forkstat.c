@@ -381,7 +381,8 @@ static char *get_tty(const dev_t dev)
 		tni = tni->next;
 	}
 
-	strncpy(tty, "?", sizeof(tty));
+	(void)memset(tty, 0, sizeof(tty));
+	*tty = '?';
 
 	dir = opendir("/dev/pts");
 	if (!dir)
@@ -408,7 +409,7 @@ static char *get_tty(const dev_t dev)
 
 	(void)closedir(dir);
 err:
-	tty[TTY_NAME_LEN - 1 ] = '\0';
+	tty[TTY_NAME_LEN - 1] = '\0';
 
 	/*
 	 *  Try to add a new tty name to cache,
@@ -419,7 +420,7 @@ err:
 	if (!tni)
 		return tty;
 
-	(void)strncpy(tni->tty_name, tty, sizeof(tni->tty_name));
+	(void)strncpy(tni->tty_name, tty, sizeof(tni->tty_name) - 1);
 	tni->dev = dev;
 	tni->next = tty_name_info[hash];
 	tty_name_info[hash] = tni;
