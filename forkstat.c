@@ -955,6 +955,14 @@ static char *proc_cmdline(const pid_t pid)
 			}
 		}
 	}
+
+	/*
+ 	 *  Convert '\r' and '\n' into spaces
+	 */
+	for (ptr = buffer; *ptr && (ptr < buffer + ret); ptr++) {
+		if ((*ptr == '\r') || (*ptr =='\n')) 
+			*ptr = ' ';
+	}
 	/*
 	 *  OPT_CMD_SHORT option we discard anything after a space
 	 */
