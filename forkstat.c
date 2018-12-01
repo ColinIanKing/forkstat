@@ -73,17 +73,18 @@
 #define OPT_REALTIME		(0x00000020)	/* Run with Real Time scheduling */
 #define OPT_EXTRA		(0x00000040)	/* Show extra stats */
 #define OPT_GLYPH		(0x00000080)	/* Show glyphs */
+#define OPT_COMM		(0x00000100)	/* Show comm info */
 
-#define OPT_EV_FORK		(0x00000100)	/* Fork event */
-#define OPT_EV_EXEC		(0x00000200)	/* Exec event */
-#define OPT_EV_EXIT		(0x00000400)	/* Exit event */
-#define OPT_EV_CORE		(0x00000800)	/* Coredump event */
-#define OPT_EV_COMM		(0x00001000)	/* Comm proc info event */
-#define OPT_EV_CLNE		(0x00002000)	/* Clone event */
-#define OPT_EV_PTRC		(0x00004000)	/* Ptrace event */
-#define OPT_EV_UID		(0x00008000)	/* UID event */
-#define OPT_EV_SID		(0x00010000)	/* SID event */
-#define OPT_EV_MASK		(0x0001ff00)	/* Event mask */
+#define OPT_EV_FORK		(0x00100000)	/* Fork event */
+#define OPT_EV_EXEC		(0x00200000)	/* Exec event */
+#define OPT_EV_EXIT		(0x00400000)	/* Exit event */
+#define OPT_EV_CORE		(0x00800000)	/* Coredump event */
+#define OPT_EV_COMM		(0x01000000)	/* Comm proc info event */
+#define OPT_EV_CLNE		(0x02000000)	/* Clone event */
+#define OPT_EV_PTRC		(0x04000000)	/* Ptrace event */
+#define OPT_EV_UID		(0x08000000)	/* UID event */
+#define OPT_EV_SID		(0x10000000)	/* SID event */
+#define OPT_EV_MASK		(0x1ff00000)	/* Event mask */
 #define OPT_EV_ALL		(OPT_EV_MASK)	/* All events */
 
 #define	GOT_TGID		(0x01)
@@ -899,6 +900,34 @@ static void proc_stats_free(void)
 }
 
 /*
+ *  proc_name_clean()
+ *	clean up unwanted chars from process name
+ */
+static void proc_name_clean(char *buffer, const int len)
+{
+	char *ptr;
+
+	/*
+ 	 *  Convert '\r' and '\n' into spaces
+	 */
+	for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
+		if ((*ptr == '\r') || (*ptr =='\n')) 
+			*ptr = ' ';
+	}
+	/*
+	 *  OPT_CMD_SHORT option we discard anything after a space
+	 */
+	if (opt_flags & OPT_CMD_SHORT) {
+		for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
+			if (*ptr == ' ') {
+				*ptr = '\0';
+				break;
+			}
+		}
+	}
+}
+
+/*
  *  proc_comm()
  *	get process name from comm field
  */
@@ -917,6 +946,8 @@ static char *proc_comm(const pid_t pid)
 	}
 	(void)close(fd);
 	buffer[ret - 1] = '\0';		/* remove trailing '\n' */
+	proc_name_clean(buffer, ret);
+
 	return strdup(buffer);
 }
 
@@ -930,6 +961,9 @@ static char *proc_cmdline(const pid_t pid)
 	int fd;
 	ssize_t ret;
 	char buffer[4096];
+
+	if (opt_flags & OPT_COMM)
+		return proc_comm(pid);
 
 	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", pid);
 	if ((fd = open(buffer, O_RDONLY)) < 0)
@@ -956,24 +990,7 @@ static char *proc_cmdline(const pid_t pid)
 		}
 	}
 
-	/*
- 	 *  Convert '\r' and '\n' into spaces
-	 */
-	for (ptr = buffer; *ptr && (ptr < buffer + ret); ptr++) {
-		if ((*ptr == '\r') || (*ptr =='\n')) 
-			*ptr = ' ';
-	}
-	/*
-	 *  OPT_CMD_SHORT option we discard anything after a space
-	 */
-	if (opt_flags & OPT_CMD_SHORT) {
-		for (ptr = buffer; *ptr && (ptr < buffer + ret); ptr++) {
-			if (*ptr == ' ') {
-				*ptr = '\0';
-				break;
-			}
-		}
-	}
+	proc_name_clean(buffer, ret);
 
 	if (opt_flags & OPT_CMD_DIRNAME_STRIP)
 		return strdup(basename(buffer));
@@ -1630,6 +1647,7 @@ static int monitor(const int sock)
 						info1->kernel_thread ? "]" : "",
 						comm);
 					free(comm);
+					proc_info_update(pid);
 				}
 				break;
 #endif
@@ -1699,10 +1717,13 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		const int c = getopt(argc, argv, "dD:e:EghlrsSqx");
+		const int c = getopt(argc, argv, "cdD:e:EghlrsSqx");
 		if (c == -1)
 			break;
 		switch (c) {
+		case 'c':
+			opt_flags |= OPT_COMM;
+			break;
 		case 'd':
 			opt_flags |= OPT_CMD_DIRNAME_STRIP;
 			break;

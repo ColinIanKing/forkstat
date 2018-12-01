@@ -21,6 +21,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 
 .SH SYNOPSIS
 .B forkstat
+.RI [ \-c ]
 .RI [ \-d ]
 .RI [ \-D ]
 .RI [ \-e ]
@@ -62,6 +63,10 @@ T}
 .TE
 .SH OPTIONS
 forkstat options are as follow:
+.TP
+.B \-c
+use the process 16 character comm field for the process name rather than command
+line information.
 .TP
 .B \-d
 strip off the directory path from the process name.
