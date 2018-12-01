@@ -957,7 +957,6 @@ static char *proc_comm(const pid_t pid)
  */
 static char *proc_cmdline(const pid_t pid)
 {
-	char *ptr;
 	int fd;
 	ssize_t ret;
 	char buffer[4096];
@@ -981,6 +980,8 @@ static char *proc_cmdline(const pid_t pid)
 	 *  OPT_CMD_LONG option we get the full cmdline args
 	 */
 	if (opt_flags & OPT_CMD_LONG) {
+		char *ptr;
+
 		for (ptr = buffer; ptr < buffer + ret; ptr++) {
 			if (*ptr == '\0') {
 				if (*(ptr + 1) == '\0')
