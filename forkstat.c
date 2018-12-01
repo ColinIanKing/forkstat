@@ -287,7 +287,7 @@ static char *secs_to_str(const double secs)
 	s += 0.0005;	/* Round up */
 	fract = (s * second_scales[i].base) - (double)((int)s * second_scales[i].base);
 	(void)snprintf(buf, sizeof(buf), "%3u.%3.3u%c",
-		(int)s, (int)fract, second_scales[i].ch);
+		(unsigned int)s, (unsigned int)fract, second_scales[i].ch);
 	return buf;
 }
 
