@@ -1668,7 +1668,9 @@ static void show_help(char *const argv[])
 {
 	(void)printf("%s, version %s\n\n", APP_NAME, VERSION);
 	(void)printf("usage: %s [-d|-D|-e|-E|-g|-h|-l|-s|-S|-q]\n", argv[0]);
-	(void)printf("-d\tstrip off directory path from process name.\n"
+	(void)printf(
+	       "-c\tuse task comm field for process name.\n"
+	       "-d\tstrip off directory path from process name.\n"
 	       "-D\tspecify run duration in seconds.\n"
 	       "-e\tselect which events to monitor.\n"
 	       "-E\tequivalent to -e all.\n"
