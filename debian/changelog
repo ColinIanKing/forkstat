@@ -1,3 +1,13 @@
+forkstat (0.02.08-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Reduce scope of pointer ptr
+  * Use unsigned int for %u format specifiers
+  * Update date in manual
+  * Add -c comm field info, also track comm field changes in proc info
+
+ -- Colin King <colin.king@canonical.com>  Sat, 1 Dec 2018 11:13:14 +0000
+
 forkstat (0.02.07-1) unstable; urgency=medium
 
   * Makefile: bump version
