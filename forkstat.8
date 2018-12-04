@@ -34,6 +34,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 .RI [ \-S ]
 .RI [ \-q ]
 .RI [ \-x ]
+.RI [ \-X ]
 .br
 
 .SH DESCRIPTION
@@ -120,6 +121,10 @@ run quietly and enable the \-S option.
 .TP
 .B \-x
 show extra process related information: user ID and TTY of the process.
+.TP
+.B \-X
+equivalent to options \-E \-g \-r \-S \-x, all events, glyphs, real time FIFO
+scheduling, statistics and extra process information.
 .SH EXAMPLES
 .LP
 Show process activity with short process names and directory base path stripped off:

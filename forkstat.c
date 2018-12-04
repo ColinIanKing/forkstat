@@ -1667,21 +1667,22 @@ static int monitor(const int sock)
 static void show_help(char *const argv[])
 {
 	(void)printf("%s, version %s\n\n", APP_NAME, VERSION);
-	(void)printf("usage: %s [-d|-D|-e|-E|-g|-h|-l|-s|-S|-q]\n", argv[0]);
+	(void)printf("usage: %s [-c|-d|-D|-e|-E|-g|-h|-l|-s|-S|-q|-x|-X]\n", argv[0]);
 	(void)printf(
-	       "-c\tuse task comm field for process name.\n"
-	       "-d\tstrip off directory path from process name.\n"
-	       "-D\tspecify run duration in seconds.\n"
-	       "-e\tselect which events to monitor.\n"
-	       "-E\tequivalent to -e all.\n"
-	       "-g\tshow glyphs for event types.\n"
-	       "-h\tshow this help.\n"
-	       "-l\tforce stdout line buffering.\n"
-	       "-r\trun with real time FIFO scheduler.\n"
-	       "-s\tshow short process name.\n"
-	       "-S\tshow event statistics at end of the run.\n"
-	       "-q\trun quietly and enable -S option.\n"
-	       "-x\tshow extra process information.\n");
+		"-c\tuse task comm field for process name.\n"
+		"-d\tstrip off directory path from process name.\n"
+		"-D\tspecify run duration in seconds.\n"
+		"-e\tselect which events to monitor.\n"
+		"-E\tequivalent to -e all.\n"
+		"-g\tshow glyphs for event types.\n"
+		"-h\tshow this help.\n"
+		"-l\tforce stdout line buffering.\n"
+		"-r\trun with real time FIFO scheduler.\n"
+		"-s\tshow short process name.\n"
+		"-S\tshow event statistics at end of the run.\n"
+		"-q\trun quietly and enable -S option.\n"
+		"-x\tshow extra process information.\n"
+		"-X\tequivalent to -EgrSx.\n");
 }
 
 /*
@@ -1720,7 +1721,7 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		const int c = getopt(argc, argv, "cdD:e:EghlrsSqx");
+		const int c = getopt(argc, argv, "cdD:e:EghlrsSqxX");
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1771,6 +1772,9 @@ int main(int argc, char * const argv[])
 			break;
 		case 'x':
 			opt_flags |= OPT_EXTRA;
+			break;
+		case 'X':
+			opt_flags |= (OPT_EV_ALL | OPT_GLYPH | OPT_STATS | OPT_EXTRA | OPT_REALTIME);
 			break;
 		default:
 			show_help(argv);
