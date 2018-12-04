@@ -1,3 +1,12 @@
+forkstat (0.02.09-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Manual: update date
+  * Add -X option, fix up short getopts help with missing options
+  * forkstat: add in -c option in help info
+
+ -- Colin King <colin.king@canonical.com>  Tue, 4 Dec 2018 11:11:11 +0000
+
 forkstat (0.02.08-1) unstable; urgency=medium
 
   * Makefile: bump version
