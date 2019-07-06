@@ -1,3 +1,11 @@
+forkstat (0.02.10-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Fix spelling mistake in manual
+  * Update copyright year
+
+ -- Colin King <colin.king@canonical.com>  Sat, 6 Jul 2019 22:38:22 +0100
+
 forkstat (0.02.09-1) unstable; urgency=medium
 
   * Makefile: bump version
