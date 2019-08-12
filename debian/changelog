@@ -1,3 +1,12 @@
+forkstat (0.02.11-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Debian: update compat to 12
+  * fix off-by-one end of string strncpy bug in tty name copying
+  * snapcraft: make versioning automatic
+
+ -- Colin King <colin.king@canonical.com>  Mon, 12 Aug 2019 14:15:16 +0100
+
 forkstat (0.02.10-1) unstable; urgency=medium
 
   * Makefile: bump version
