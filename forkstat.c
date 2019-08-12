@@ -421,7 +421,7 @@ err:
 	if (!tni)
 		return tty;
 
-	(void)strncpy(tni->tty_name, tty, sizeof(tni->tty_name) - 1);
+	(void)strncpy(tni->tty_name, tty, sizeof(tni->tty_name));
 	tni->dev = dev;
 	tni->next = tty_name_info[hash];
 	tty_name_info[hash] = tni;
