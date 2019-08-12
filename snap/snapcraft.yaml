@@ -1,5 +1,7 @@
 name: forkstat
-version: 0
+version: git
+version-script: |
+    echo $(git describe --tags)
 summary: process fork/exec/exit monitoring tool
 description: Forkstat monitors process fork(), exec() and exit() activity.  It is useful for monitoring system behaviour and to track down rogue processes that are spawning off processes and potentially abusing the system.
 confinement: strict
