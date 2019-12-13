@@ -1184,9 +1184,7 @@ static proc_info_t const *proc_info_update(const pid_t pid)
 	 *  we temporarily keep the parent's name or
 	 *  the processes old name
 	 */
-	if (newcmd == unknown) {
-		free_proc_comm(newcmd);	/* a no-op */
-	} else {
+	if (newcmd != unknown) {
 		free_proc_comm(info->cmdline);
 		info->cmdline = newcmd;
 	}
