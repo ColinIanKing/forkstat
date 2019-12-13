@@ -1,3 +1,12 @@
+forkstat (0.02.12-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Remove no-op free_proc_comm call on an unknown comm field
+  * Return no info rather than NULL if proc_info_get returns NULL
+  * Re-work unknown cmdline information
+
+ -- Colin King <colin.king@canonical.com>  Fri, 13 Dec 2019 19:59:11 +0000
+
 forkstat (0.02.11-1) unstable; urgency=medium
 
   * Makefile: bump version
