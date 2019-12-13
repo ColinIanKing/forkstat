@@ -188,13 +188,17 @@ static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
 static long int opt_duration = -1;		/* duration, < 0 means run forever */
 
+static char unknown[] = "<unknown>";
+
+static proc_info_t *proc_info_add(const pid_t pid, const struct timeval * const tv);
+
 /* Default void no process info struct */
 static proc_info_t no_info = {
 	.pid = NULL_PID,
 	.uid = NULL_UID,
 	.gid = NULL_GID,
 	.tty = NULL_TTY,
-	.cmdline = "<unknown>",
+	.cmdline = unknown,
 	.kernel_thread = false,
 	.start = { 0, 0 },
 	.next = NULL,
@@ -268,6 +272,20 @@ static const time_scale_t second_scales[] = {
 	{ 'y',  1000, 365 * 24 * 3600 },
 	{ ' ',  1000,  INT64_MAX },
 };
+
+/*
+ *  proc_comm_dup()
+ *	duplicate a comm filed string, if it fails, return unknown
+ */
+static char *proc_comm_dup(const char *str)
+{
+	char *comm = strdup(str);
+
+	if (!comm)
+		return unknown;
+
+	return comm;
+}
 
 /*
  *  secs_to_str()
@@ -448,6 +466,59 @@ static void tty_name_info_free(void)
 		}
 	}
 }
+
+/*
+ *  proc_name_clean()
+ *	clean up unwanted chars from process name
+ */
+static void proc_name_clean(char *buffer, const int len)
+{
+	char *ptr;
+
+	/*
+	 *  Convert '\r' and '\n' into spaces
+	 */
+	for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
+		if ((*ptr == '\r') || (*ptr =='\n'))
+			*ptr = ' ';
+	}
+	/*
+	 *  OPT_CMD_SHORT option we discard anything after a space
+	 */
+	if (opt_flags & OPT_CMD_SHORT) {
+		for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
+			if (*ptr == ' ') {
+				*ptr = '\0';
+				break;
+			}
+		}
+	}
+}
+
+/*
+ *  proc_comm()
+ *	get process name from comm field
+ */
+static char *proc_comm(const pid_t pid)
+{
+	int fd;
+	ssize_t ret;
+	char buffer[4096];
+
+	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
+	if ((fd = open(buffer, O_RDONLY)) < 0)
+		return unknown;
+	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
+		(void)close(fd);
+		return unknown;
+	}
+	(void)close(fd);
+	buffer[ret - 1] = '\0';		/* remove trailing '\n' */
+	proc_name_clean(buffer, ret);
+
+	return proc_comm_dup(buffer);
+}
+
 
 /*
  *  get_extra()
@@ -744,6 +815,69 @@ static inline double timeval_to_double(const struct timeval * const tv)
 }
 
 /*
+ *   proc_info_get_timeval()
+ *	get time when process started
+ */
+static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
+{
+	int fd;
+	unsigned long long starttime;
+	unsigned long jiffies;
+	char path[PATH_MAX];
+	char buffer[4096];
+	double uptime_secs, secs;
+	struct timeval now;
+	ssize_t n;
+
+	(void)snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+
+	fd = open("/proc/uptime", O_RDONLY);
+	if (fd < 0)
+		return;
+	n = read(fd, buffer, sizeof(buffer));
+	if (n <= 0) {
+		(void)close(fd);
+		return;
+	}
+	(void)close(fd);
+	n = sscanf(buffer, "%lg", &uptime_secs);
+	if (n != 1)
+		return;
+	if (uptime_secs < 0.0)
+		return;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		return;
+	n = read(fd, buffer, sizeof(buffer));
+	if (n <= 0) {
+		(void)close(fd);
+		return;
+	}
+	(void)close(fd);
+	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u "
+		"%*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
+	if (n != 1)
+		return;
+
+	errno = 0;
+	jiffies = sysconf(_SC_CLK_TCK);
+	if (errno)
+		return;
+	secs = uptime_secs - ((double)starttime / (double)jiffies);
+	if (secs < 0.0)
+		return;
+
+	if (gettimeofday(&now, NULL) < 0)
+		return;
+
+	secs = timeval_to_double(&now) - secs;
+	tv->tv_sec = secs;
+	tv->tv_usec = (suseconds_t)secs % 1000000;
+}
+
+
+/*
  *  proc_info_hash()
  * 	hash on PID
  */
@@ -751,6 +885,7 @@ static inline size_t proc_info_hash(const pid_t pid)
 {
 	return pid % MAX_PIDS;
 }
+
 
 /*
  *  proc_name_hash()
@@ -900,55 +1035,13 @@ static void proc_stats_free(void)
 }
 
 /*
- *  proc_name_clean()
- *	clean up unwanted chars from process name
+ *  free_proc_comm()
+ *	free comm field only if it's not the static unknown string
  */
-static void proc_name_clean(char *buffer, const int len)
+static void free_proc_comm(char *comm)
 {
-	char *ptr;
-
-	/*
- 	 *  Convert '\r' and '\n' into spaces
-	 */
-	for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
-		if ((*ptr == '\r') || (*ptr =='\n')) 
-			*ptr = ' ';
-	}
-	/*
-	 *  OPT_CMD_SHORT option we discard anything after a space
-	 */
-	if (opt_flags & OPT_CMD_SHORT) {
-		for (ptr = buffer; *ptr && (ptr < buffer + len); ptr++) {
-			if (*ptr == ' ') {
-				*ptr = '\0';
-				break;
-			}
-		}
-	}
-}
-
-/*
- *  proc_comm()
- *	get process name from comm field
- */
-static char *proc_comm(const pid_t pid)
-{
-	int fd;
-	ssize_t ret;
-	char buffer[4096];
-
-	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/comm", pid);
-	if ((fd = open(buffer, O_RDONLY)) < 0)
-		return NULL;
-	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
-		(void)close(fd);
-		return NULL;
-	}
-	(void)close(fd);
-	buffer[ret - 1] = '\0';		/* remove trailing '\n' */
-	proc_name_clean(buffer, ret);
-
-	return strdup(buffer);
+	if (comm != unknown)
+		free(comm);
 }
 
 /*
@@ -960,6 +1053,9 @@ static char *proc_cmdline(const pid_t pid)
 	int fd;
 	ssize_t ret;
 	char buffer[4096];
+
+	if (pid == 0)
+		return proc_comm_dup("[swapper]");
 
 	if (opt_flags & OPT_COMM)
 		return proc_comm(pid);
@@ -994,9 +1090,9 @@ static char *proc_cmdline(const pid_t pid)
 	proc_name_clean(buffer, ret);
 
 	if (opt_flags & OPT_CMD_DIRNAME_STRIP)
-		return strdup(basename(buffer));
+		return proc_comm_dup(basename(buffer));
 
-	return strdup(buffer);
+	return proc_comm_dup(buffer);
 }
 
 /*
@@ -1007,14 +1103,23 @@ static proc_info_t *proc_info_get(const pid_t pid)
 {
 	const size_t i = proc_info_hash(pid);
 	proc_info_t *info = proc_info[i];
+	struct timeval tv;
 
 	while (info) {
-		if (info->pid == pid)
+		if (info->pid == pid) {
+			if (info->cmdline == unknown)
+				info->cmdline = proc_cmdline(pid);
 			return info;
+		}
 		info = info->next;
 	}
-	return &no_info;
+
+	/* Hrm, not already cached, so get new info */
+	(void)memset(&tv, 0, sizeof(tv));
+	proc_info_get_timeval(pid, &tv);
+	return proc_info_add(pid, &tv);
 }
+
 
 /*
  *  proc_info_free()
@@ -1030,7 +1135,7 @@ static void proc_info_free(const pid_t pid)
 			info->pid = NULL_PID;
 			info->uid = NULL_UID;
 			info->gid = NULL_GID;
-			free(info->cmdline);
+			free_proc_comm(info->cmdline);
 			info->cmdline = NULL;
 			return;
 		}
@@ -1051,7 +1156,7 @@ static void proc_info_unload(void)
 
 		while (info) {
 			proc_info_t *next = info->next;
-			free(info->cmdline);
+			free_proc_comm(info->cmdline);
 			free(info);
 			info = next;
 		}
@@ -1070,75 +1175,20 @@ static proc_info_t const *proc_info_update(const pid_t pid)
 	if (info == &no_info)
 		return &no_info;
 	newcmd = proc_cmdline(pid);
-	if (!newcmd)
-		return &no_info;
 
-	free(info->cmdline);
-	info->cmdline = newcmd;
+	/*
+	 *  Don't update if newcmd is unknown, at least
+	 *  we temporarily keep the parent's name or
+	 *  the processes old name
+	 */
+	if (newcmd == unknown) {
+		free_proc_comm(newcmd);	/* a no-op */
+	} else {
+		free_proc_comm(info->cmdline);
+		info->cmdline = newcmd;
+	}
 
 	return info;
-}
-
-/*
- *   proc_info_get_timeval()
- *	get time when process started
- */
-static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
-{
-	int fd;
-	unsigned long long starttime;
-	unsigned long jiffies;
-	char path[PATH_MAX];
-	char buffer[4096];
-	double uptime_secs, secs;
-	struct timeval now;
-	ssize_t n;
-
-	(void)snprintf(path, sizeof(path), "/proc/%d/stat", pid);
-
-	fd = open("/proc/uptime", O_RDONLY);
-	if (fd < 0)
-		return;
-	n = read(fd, buffer, sizeof(buffer));
-	if (n <= 0) {
-		(void)close(fd);
-		return;
-	}
-	(void)close(fd);
-	n = sscanf(buffer, "%lg", &uptime_secs);
-	if (n != 1)
-		return;
-	if (uptime_secs < 0.0)
-		return;
-
-	fd = open(path, O_RDONLY);
-	if (fd < 0)
-		return;
-	n = read(fd, buffer, sizeof(buffer));
-	if (n <= 0) {
-		(void)close(fd);
-		return;
-	}
-	(void)close(fd);
-	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u "
-		"%*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
-	if (n != 1)
-		return;
-
-	errno = 0;
-	jiffies = sysconf(_SC_CLK_TCK);
-	if (errno)
-		return;
-	secs = uptime_secs - ((double)starttime / (double)jiffies);
-	if (secs < 0.0)
-		return;
-
-	if (gettimeofday(&now, NULL) < 0)
-		return;
-
-	secs = timeval_to_double(&now) - secs;
-	tv->tv_sec = secs;
-	tv->tv_usec = (suseconds_t)secs % 1000000;
 }
 
 /*
@@ -1152,8 +1202,6 @@ static proc_info_t *proc_info_add(const pid_t pid, const struct timeval * const 
 	char *cmdline;
 
 	cmdline = proc_cmdline(pid);
-	if (!cmdline)
-		return NULL;
 
 	/* Re-use any info on the list if it's free */
 	info = proc_info[i];
@@ -1167,7 +1215,7 @@ static proc_info_t *proc_info_add(const pid_t pid, const struct timeval * const 
 		info = calloc(1, sizeof(proc_info_t));
 		if (!info) {
 			(void)fprintf(stderr, "Cannot allocate all proc info\n");
-			free(cmdline);
+			free_proc_comm(cmdline);
 			return NULL;
 		}
 		info->next = proc_info[i];
@@ -1631,9 +1679,7 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
 					pid = proc_ev->event_data.comm.process_pid;
 					info1 = proc_info_get(pid);
-					comm = proc_comm(pid);
-					if (!comm)
-						break;
+					comm = proc_cmdline(pid);
 					row_increment();
 
 					(void)printf("%s comm  %*d %s%s%s       %8s %s%s%s -> %s\n",
@@ -1647,7 +1693,7 @@ static int monitor(const int sock)
 						info1->cmdline,
 						info1->kernel_thread ? "]" : "",
 						comm);
-					free(comm);
+					free_proc_comm(comm);
 					proc_info_update(pid);
 				}
 				break;
