@@ -1117,9 +1117,12 @@ static proc_info_t *proc_info_get(const pid_t pid)
 	/* Hrm, not already cached, so get new info */
 	(void)memset(&tv, 0, sizeof(tv));
 	proc_info_get_timeval(pid, &tv);
-	return proc_info_add(pid, &tv);
-}
+	info = proc_info_add(pid, &tv);
+	if (!info)
+		info = &no_info;
 
+	return info;
+}
 
 /*
  *  proc_info_free()
