@@ -36,6 +36,7 @@ export DEB_BUILD_HARDENING=1
 
 BINDIR=/usr/bin
 MANDIR=/usr/share/man/man8
+BASHDIR=/usr/share/bash-completion/completions
 
 forkstat: forkstat.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDFLAGS)
@@ -48,7 +49,7 @@ dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
 	cp -rp Makefile forkstat.c forkstat.8 mascot COPYING \
-		snap .travis.yml forkstat-$(VERSION)
+		snap .travis.yml bash-completion forkstat-$(VERSION)
 	tar -Jcf forkstat-$(VERSION).tar.xz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
@@ -68,3 +69,5 @@ install: forkstat forkstat.8.gz
 	cp forkstat ${DESTDIR}${BINDIR}
 	mkdir -p ${DESTDIR}${MANDIR}
 	cp forkstat.8.gz ${DESTDIR}${MANDIR}
+	mkdir -p ${DESTDIR}${BASHDIR}
+	cp bash-completion/forkstat  ${DESTDIR}${BASHDIR}
