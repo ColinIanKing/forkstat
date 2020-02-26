@@ -1,3 +1,11 @@
+forkstat (0.02.13-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Add bash completion
+  * Update copyright to 2020
+
+ -- Colin King <colin.king@canonical.com>  Wed, 26 Feb 2020 00:16:18 +0000
+
 forkstat (0.02.12-1) unstable; urgency=medium
 
   * Makefile: bump version
