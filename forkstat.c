@@ -103,6 +103,7 @@ typedef struct proc_info {
 	pid_t	pid;		/* Process ID */
 	uid_t	uid;		/* User ID */
 	gid_t	gid;		/* GUID */
+	uid_t	euid;		/* EUID */
 	struct timeval start;	/* time when process started */
 	bool	kernel_thread;	/* true if a kernel thread */
 } proc_info_t;
@@ -319,21 +320,25 @@ static char *get_username(const uid_t uid)
 	static char buf[12];
 	const size_t hash = uid % MAX_UIDS;
 	uid_name_info_t *uni = uid_name_info[hash];
-	char *name;
+	char *name = NULL;
 
-	/*
-	 *  Try and find it in cache first
-	 */
-	while (uni) {
-		if (uni->uid == uid)
-			return uni->name;
-		uni = uni->next;
+	if (uid != NULL_UID) {
+		/*
+		 *  Try and find it in cache first
+		 */
+		while (uni) {
+			if (uni->uid == uid)
+				return uni->name;
+			uni = uni->next;
+		}
+
+		pwd = getpwuid(uid);
+		if (pwd)
+			name = pwd->pw_name;
 	}
 
-	pwd = getpwuid(uid);
-	if (pwd) {
-		name = pwd->pw_name;
-	} else {
+	/* Unknow UID, use numeric instead */
+	if (!name) {
 		(void)snprintf(buf, sizeof(buf), "%d", uid);
 		name = buf;
 	}
@@ -522,43 +527,70 @@ static char *proc_comm(const pid_t pid)
 
 /*
  *  get_extra()
- *	quick and dirty way to get UID and GID from a PID,
- *	note that this does not cater of changes
- *	because of use of an effective ID.
+ *	quick and dirty way to get UID, EUID and GID from a PID
  */
 static void get_extra(const pid_t pid, proc_info_t * const info)
 {
-	ssize_t ret;
 	long dev;
-	int fd;
+	FILE *fp;
 	char path[PATH_MAX];
-	char buffer[4096];
+	char buffer[1024];
 	struct stat buf;
 
 	info->uid = NULL_UID;
 	info->gid = NULL_GID;
+	info->euid = NULL_UID;
 	info->tty = NULL_TTY;
 
 	if (!(opt_flags & OPT_EXTRA))
 		return;
 
-	(void)snprintf(path, sizeof(path), "/proc/%u/stat", pid);
-	fd = open(path, O_RDONLY);
-	if (fd < 0)
+	(void)snprintf(path, sizeof(path), "/proc/%u/status", pid);
+	fp = fopen(path, "r");
+	if (!fp)
 		return;
 
-	if (fstat(fd, &buf) == 0) {
-		info->uid = buf.st_uid;
-		info->gid = buf.st_gid;
+	(void)memset(buffer, 0, sizeof(buffer));
+	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
+		int gid, uid, euid;
+
+		if (!strncmp(buffer, "Uid:", 4)) {
+			if (sscanf(buffer + 4, "%d %d", &uid, &euid) == 2) {
+				info->uid = uid;
+				info->euid = euid;
+			}
+		}
+		if (!strncmp(buffer, "Gid:", 4)) {
+			if (sscanf(buffer + 4, "%d", &gid) == 1) {
+				info->gid = gid;
+			}
+		}
+		if ((info->uid != NULL_UID) &&
+		    (info->euid != NULL_UID) &&
+		    (info->gid != NULL_GID))
+			break;
+	}
+	(void)fclose(fp);
+
+	(void)snprintf(path, sizeof(path), "/proc/%u/stat", pid);
+	fp = fopen(path, "r");
+	if (!fp)
+		return;
+
+	/*
+	 *  Failed to parse /proc/$PID/status? then at least get
+	 *  some info by stat'ing /proc/$PID/stat
+	 */
+	if ((info->uid == NULL_UID) || (info->gid == NULL_GID)) {
+		if (fstat(fileno(fp), &buf) == 0) {
+			info->uid = buf.st_uid;
+			info->gid = buf.st_gid;
+		}
 	}
 
-	ret = read(fd, buffer, sizeof(buffer));
-	(void)close(fd);
-	if (ret < 0)
-		return;
-
-	if (sscanf(buffer, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1)
+	if (fscanf(fp, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1)
 		info->tty = (dev_t)dev;
+	(void)fclose(fp);
 }
 
 /*
@@ -786,7 +818,7 @@ static void print_heading(void)
 
 	(void)printf("Time     Event %*.*s %s%sInfo   Duration Process\n",
 		pid_size, pid_size, "PID",
-		(opt_flags & OPT_EXTRA) ? "   UID TTY    " : "",
+		(opt_flags & OPT_EXTRA) ? "    UID    EUID TTY    " : "",
 		(opt_flags & OPT_GLYPH) ? " " : "");
 }
 
@@ -1138,6 +1170,7 @@ static void proc_info_free(const pid_t pid)
 			info->pid = NULL_PID;
 			info->uid = NULL_UID;
 			info->gid = NULL_GID;
+			info->euid = NULL_UID;
 			free_proc_comm(info->cmdline);
 			info->cmdline = NULL;
 			return;
@@ -1304,15 +1337,16 @@ static int proc_info_load(void)
  */
 static char *extra_info(const uid_t uid)
 {
-	static char buf[20];
+	static char buf[28];
 
 	*buf = '\0';
 	if (opt_flags & OPT_EXTRA) {
 		const proc_info_t *info = proc_info_get(uid);
 
 		if (info && info->uid != NULL_UID)
-			(void)snprintf(buf, sizeof(buf), "%6s %-6.6s ",
+			(void)snprintf(buf, sizeof(buf), "%7.7s %7.7s %6.6s ",
 				get_username(info->uid),
+				get_username(info->euid),
 				get_tty(info->tty));
 		else
 			(void)snprintf(buf, sizeof(buf), "%14s", "");
