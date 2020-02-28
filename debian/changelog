@@ -1,3 +1,10 @@
+forkstat (0.02.14-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Add effictive user id (EUID) for -x option (Closes: #951340)
+
+ -- Colin King <colin.king@canonical.com>  Fri, 28 Feb 2020 15:02:41 +0000
+
 forkstat (0.02.13-1) unstable; urgency=medium
 
   * Makefile: bump version
