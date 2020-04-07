@@ -793,6 +793,7 @@ static int tty_height(void)
 	const int fd = 0;
 	struct winsize ws;
 
+	(void)memset(&ws, 0, sizeof(ws));
 	/* if tty and we can get a sane width, return it */
 	if (isatty(fd) &&
 	    (ioctl(fd, TIOCGWINSZ, &ws) != -1) &&
