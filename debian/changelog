@@ -1,3 +1,12 @@
+forkstat (0.02.15-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Debian/control: update compat to 13, remove compat file,
+    add Rules-Requires-Roo t rule
+  * Zero ws struct to clear static analysis warnings
+
+ -- Colin King <colin.king@canonical.com>  Sat, 4 Jul 2020 11:16:22 +0100
+
 forkstat (0.02.14-1) unstable; urgency=medium
 
   * Makefile: bump version
