@@ -288,6 +288,7 @@ static char *proc_comm_dup(const char *str)
 	return comm;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  secs_to_str()
  *	report seconds in different units.
@@ -309,6 +310,7 @@ static char *secs_to_str(const double secs)
 		(unsigned int)s, (unsigned int)fract, second_scales[i].ch);
 	return buf;
 }
+#endif
 
 /*
  *  get_username()
@@ -629,6 +631,7 @@ ret:
 
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  get_parent_pid()
  *	get parent pid and set is_thread to true if process
@@ -679,6 +682,7 @@ static pid_t get_parent_pid(const pid_t pid, bool * const is_thread)
 
 	return ppid;
 }
+#endif
 
 /*
  *  sane_proc_pid_info()
@@ -823,6 +827,7 @@ static void print_heading(void)
 		(opt_flags & OPT_GLYPH) ? " " : "");
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  row_increment()
  *	bump row increment and re-print heading if required
@@ -837,6 +842,7 @@ static void row_increment(void)
 		row = 2;
 	}
 }
+#endif
 
 /*
  *  timeval_to_double()
@@ -936,6 +942,7 @@ static inline unsigned int proc_name_hash(const char *str)
 	return hash % MAX_PIDS;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  proc_stats_account()
  *	perform per process accounting
@@ -980,6 +987,7 @@ static void proc_stats_account(const pid_t pid, const event_t event)
 	stats->next = proc_stats[h];
 	proc_stats[h] = stats;
 }
+#endif
 
 /*
  *  stats_cmp()
@@ -1157,6 +1165,7 @@ static proc_info_t *proc_info_get(const pid_t pid)
 	return info;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  proc_info_free()
  *	free cached process info and remove from hash table
@@ -1179,6 +1188,7 @@ static void proc_info_free(const pid_t pid)
 		info = info->next;
 	}
 }
+#endif
 
 /*
  *   proc_info_unload()
@@ -1200,6 +1210,7 @@ static void proc_info_unload(void)
 	}
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  proc_info_update()
  *	update process name, for example, if exec has occurred
@@ -1225,6 +1236,7 @@ static proc_info_t const *proc_info_update(const pid_t pid)
 
 	return info;
 }
+#endif
 
 /*
  *   proc_info_add()
@@ -1332,6 +1344,7 @@ static int proc_info_load(void)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  extra_info()
  *	format up extra process information if selected
@@ -1355,6 +1368,7 @@ static char *extra_info(const uid_t uid)
 
 	return buf;
 }
+#endif
 
 /*
  *  handle_sig()
