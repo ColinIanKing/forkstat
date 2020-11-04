@@ -1488,8 +1488,10 @@ static int monitor(const int sock)
 			struct tm tm;
 			char when[10];
 			time_t now;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			pid_t pid, ppid;
 			bool is_thread;
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 			struct timeval tv;
