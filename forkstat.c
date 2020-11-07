@@ -288,6 +288,50 @@ static char *proc_comm_dup(const char *str)
 	return comm;
 }
 
+/*
+ *  get_proc_self_stat_field()
+ *	find nth field of /proc/$PID/stat data. This works around
+ *	the problem that the comm field can contain spaces and
+ *	multiple ) so sscanf on this field won't work.  The returned
+ *	pointer is the start of the Nth field and it is up to the
+ *	caller to determine the end of the field
+ */
+static const char *get_proc_self_stat_field(const char *buf, const int num)
+{
+	const char *ptr = buf, *comm_end;
+	int n;
+
+	if (num < 1 || !buf || !*buf)
+		return NULL;
+	if (num == 1)
+		return buf;
+	if (num == 2)
+		return strstr(buf, "(");
+
+	comm_end = NULL;
+	for (ptr = buf; *ptr; ptr++) {
+		if (*ptr == ')')
+			comm_end = ptr;
+	}
+	if (!comm_end)
+		return NULL;
+	comm_end++;
+	n = num - 2;
+
+	ptr = comm_end;
+	while (*ptr) {
+		while (*ptr && *ptr == ' ')
+			ptr++;
+		n--;
+		if (n <= 0)
+			break;
+		while (*ptr && *ptr != ' ')
+			ptr++;
+	}
+
+	return ptr;
+}
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
 /*
  *  secs_to_str()
@@ -590,8 +634,13 @@ static void get_extra(const pid_t pid, proc_info_t * const info)
 		}
 	}
 
-	if (fscanf(fp, "%*d %*s %*s %*d %*d %*d %ld", &dev) == 1)
-		info->tty = (dev_t)dev;
+	info->tty = (dev_t)0;
+	if (fgets(buffer, sizeof(buffer) - 1, fp) != NULL) {
+		const char *ptr = get_proc_self_stat_field(buffer, 7);
+
+		if (ptr && sscanf(ptr , "%ld", &dev) == 1)
+			info->tty = (dev_t)dev;
+	}
 	(void)fclose(fp);
 }
 
@@ -864,6 +913,7 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
 	unsigned long jiffies;
 	char path[PATH_MAX];
 	char buffer[4096];
+	const char *ptr;
 	double uptime_secs, secs;
 	struct timeval now;
 	ssize_t n;
@@ -873,11 +923,12 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
 	fd = open("/proc/uptime", O_RDONLY);
 	if (fd < 0)
 		return;
-	n = read(fd, buffer, sizeof(buffer));
+	n = read(fd, buffer, sizeof(buffer) - 1);
 	if (n <= 0) {
 		(void)close(fd);
 		return;
 	}
+	buffer[n] = '\0';
 	(void)close(fd);
 	n = sscanf(buffer, "%lg", &uptime_secs);
 	if (n != 1)
@@ -888,14 +939,18 @@ static void proc_info_get_timeval(const pid_t pid, struct timeval * const tv)
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		return;
-	n = read(fd, buffer, sizeof(buffer));
+	n = read(fd, buffer, sizeof(buffer) - 1);
 	if (n <= 0) {
 		(void)close(fd);
 		return;
 	}
+	buffer[n] = '\0';
 	(void)close(fd);
-	n = sscanf(buffer, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u "
-		"%*u %*u %*u %*u %*u %*d %*d %*d %*d %llu", &starttime);
+
+	ptr = get_proc_self_stat_field(buffer, 22);
+	if (!ptr)
+		return;
+	n = sscanf(ptr, "%llu", &starttime);
 	if (n != 1)
 		return;
 
