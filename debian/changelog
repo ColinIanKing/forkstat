@@ -1,3 +1,20 @@
+forkstat (0.02.17-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * forkstat.c: Update copyright
+  * Makefile: update copyright
+  * Makefile: add README.md to dist rule
+  * manual: update date, author email and copyright
+  * debian/watch: update watch path for tarball, move to version 4
+  * debian/copyright: Update copyright and git URL
+  * debian/control: update author email address and project URL
+  * Add README.md
+  * snapcraft: add build architectures
+  * snapcraft: update to core20
+  * update copyright to 2021
+
+ -- Colin Ian King <colin.i.king@gmail.com>  Mon, 15 Nov 2021 19:40:22 +0000
+
 forkstat (0.02.16-1) unstable; urgency=medium
 
   * Makefile: bump version
