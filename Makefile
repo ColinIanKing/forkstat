@@ -29,7 +29,7 @@ ifeq ($(PEDANTIC),1)
 CFLAGS += -Wabi -Wcast-qual -Wfloat-equal -Wmissing-declarations \
 	-Wmissing-format-attribute -Wno-long-long -Wpacked \
 	-Wredundant-decls -Wshadow -Wno-missing-field-initializers \
-	-Wno-missing-braces -Wno-sign-compare -Wno-multichar
+	-Wno-missing-braces -Wno-sign-compare -Wno-multichar -fanalyzer
 endif
 
 export DEB_BUILD_HARDENING=1
@@ -49,7 +49,7 @@ dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
 	cp -rp Makefile forkstat.c forkstat.8 mascot COPYING \
-		snap .travis.yml bash-completion forkstat-$(VERSION)
+		snap .travis.yml bash-completion README.md forkstat-$(VERSION)
 	tar -Jcf forkstat-$(VERSION).tar.xz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
