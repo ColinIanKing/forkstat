@@ -139,7 +139,8 @@ typedef enum {
 	STAT_PTRC,		/* Ptrace */
 	STAT_UID,		/* UID change */
 	STAT_SID,		/* SID change */
-	STAT_LAST		/* Always last sentinal */
+	STAT_LAST,		/* Always last sentinal */
+	STAT_NONE
 } event_t;
 
 typedef struct proc_stats {
@@ -174,8 +175,8 @@ static const ev_map_t ev_map[] = {
 	{ "ptrce","Ptrace",	OPT_EV_PTRC,	STAT_PTRC },
 	{ "uid",  "Uid",	OPT_EV_UID,	STAT_UID  },
 	{ "sid",  "Sid",	OPT_EV_SID,	STAT_SID  },
-	{ "all",  "",		OPT_EV_ALL,	0 },
-	{ NULL,	  NULL, 	0,		0 }
+	{ "all",  "",		OPT_EV_ALL,	STAT_NONE },
+	{ NULL,	  NULL, 	0,		STAT_NONE }
 };
 
 #define KERN_TASK_INFO(str)	{ str, sizeof(str) - 1 }
