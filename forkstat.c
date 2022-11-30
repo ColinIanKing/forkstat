@@ -300,7 +300,7 @@ static char *proc_comm_dup(const char *str)
  */
 static const char *get_proc_self_stat_field(const char *buf, const int num)
 {
-	const char *ptr = buf, *comm_end;
+	const char *ptr, *comm_end;
 	int n;
 
 	if (num < 1 || !buf || !*buf)
