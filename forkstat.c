@@ -322,7 +322,7 @@ static const char *get_proc_self_stat_field(const char *buf, const int num)
 
 	ptr = comm_end;
 	while (*ptr) {
-		while (*ptr && *ptr == ' ')
+		while (*ptr == ' ')
 			ptr++;
 		n--;
 		if (n <= 0)
