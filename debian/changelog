@@ -1,3 +1,14 @@
+forkstat (0.03.00-1) unstable; urgency=medium
+
+  * Makefile: bump version to 0.03.00
+  * Debian/control: update standards version to 4.6.1
+  * Remove redundant null check on ptr
+  * Update copyright
+  * forkstat: remove redundant assignment to ptr
+  * Add STAT_NONE to event_t enum and use it instead of 0
+
+ -- Colin Ian King <colin.i.king@gmail.com>  Tue, 6 Dec 2022 12:12:12 +0000
+
 forkstat (0.02.17-1) unstable; urgency=medium
 
   * Makefile: bump version
