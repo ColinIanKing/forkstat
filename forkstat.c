@@ -1149,8 +1149,9 @@ static void free_proc_comm(char *comm)
 static char *proc_cmdline(const pid_t pid)
 {
 	int fd;
+	const size_t buffer_sz = 65536;
 	ssize_t ret;
-	char buffer[4096];
+	char *buffer, *tmp;
 
 	if (pid == 0)
 		return proc_comm_dup("[swapper]");
@@ -1158,12 +1159,19 @@ static char *proc_cmdline(const pid_t pid)
 	if (opt_flags & OPT_COMM)
 		return proc_comm(pid);
 
-	(void)snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", pid);
-	if ((fd = open(buffer, O_RDONLY)) < 0)
+	buffer = malloc(buffer_sz);
+	if (!buffer)
 		return proc_comm(pid);
 
-	(void)memset(buffer, 0, sizeof(buffer));
-	if ((ret = read(fd, buffer, sizeof(buffer) - 1)) <= 0) {
+	(void)snprintf(buffer, buffer_sz, "/proc/%d/cmdline", pid);
+	if ((fd = open(buffer, O_RDONLY)) < 0) {
+		free(buffer);
+		return proc_comm(pid);
+	}
+
+	(void)memset(buffer, 0, buffer_sz);
+	if ((ret = read(fd, buffer, buffer_sz - 1)) <= 0) {
+		free(buffer);
 		(void)close(fd);
 		return proc_comm(pid);
 	}
@@ -1187,10 +1195,13 @@ static char *proc_cmdline(const pid_t pid)
 
 	proc_name_clean(buffer, ret);
 
-	if (opt_flags & OPT_CMD_DIRNAME_STRIP)
-		return proc_comm_dup(basename(buffer));
-
-	return proc_comm_dup(buffer);
+	if (opt_flags & OPT_CMD_DIRNAME_STRIP) {
+		tmp = proc_comm_dup(basename(buffer));
+	} else {
+		tmp = proc_comm_dup(buffer);
+	}
+	free(buffer);
+	return tmp;
 }
 
 /*
