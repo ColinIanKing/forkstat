@@ -1186,11 +1186,10 @@ static char *proc_cmdline(const pid_t pid)
 
 		for (ptr = buffer; ptr < buffer + ret; ptr++) {
 			if (*ptr == '\0') {
-				if (*(ptr + 1) == '\0')
-					break;
 				*ptr = ' ';
 			}
 		}
+		*ptr = '\0';
 	}
 
 	proc_name_clean(buffer, ret);
