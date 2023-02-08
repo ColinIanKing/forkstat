@@ -190,6 +190,7 @@ static tty_name_info_t *tty_name_info[MAX_TTYS];/* TTY dev to name hash table */
 static unsigned int opt_flags = OPT_CMD_LONG;	/* Default option */
 static int row = 0;				/* tty row number */
 static long int opt_duration = -1;		/* duration, < 0 means run forever */
+static pid_t opt_pgrp = -1;
 
 static char unknown[] = "<unknown>";
 
@@ -1570,7 +1571,7 @@ static int monitor(const int sock)
 			char when[10];
 			time_t now;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,14)
-			pid_t pid, ppid;
+			pid_t pid, ppid, pgrp;
 			bool is_thread;
 #endif
 
@@ -1611,6 +1612,9 @@ static int monitor(const int sock)
 			case PROC_EVENT_FORK:
 				ppid = get_parent_pid(proc_ev->event_data.fork.child_pid, &is_thread);
 				pid = proc_ev->event_data.fork.child_pid;
+				pgrp = getpgid(pid);
+				if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+					break;
 				proc_stats_account(proc_ev->event_data.fork.parent_pid,
 					is_thread ? STAT_CLNE : STAT_FORK);
 				if (gettimeofday(&tv, NULL) < 0)
@@ -1652,6 +1656,9 @@ static int monitor(const int sock)
 			case PROC_EVENT_EXEC:
 				proc_stats_account(proc_ev->event_data.exec.process_pid, STAT_EXEC);
 				pid = proc_ev->event_data.exec.process_pid;
+				pgrp = getpgid(pid);
+				if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+					break;
 				info1 = proc_info_update(pid);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXEC)) {
 					row_increment();
@@ -1670,6 +1677,9 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {
 					pid = proc_ev->event_data.exit.process_pid;
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					info1 = proc_info_get(pid);
 					if (info1->start.tv_sec) {
 						double d1, d2;
@@ -1703,6 +1713,9 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					if (proc_ev->what == PROC_EVENT_UID) {
 						(void)printf("%s uid   %*d %s%s%6s %8s %s%s%s\n",
 							when,
@@ -1733,6 +1746,9 @@ static int monitor(const int sock)
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_UID)) {
 					row_increment();
 					pid = proc_ev->event_data.exec.process_pid;
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					(void)printf("%s sid   %*d %s%s%6d %8s %s%s%s\n",
 						when,
 						pid_size, pid,
@@ -1751,6 +1767,9 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.coredump.process_pid, STAT_CORE);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_CORE)) {
 					pid = proc_ev->event_data.coredump.process_pid;
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					info1 = proc_info_get(pid);
 					row_increment();
 					(void)printf("%s core  %*d %s%s       %8s %s%s%s\n",
@@ -1777,6 +1796,9 @@ static int monitor(const int sock)
 #else
 					pid = proc_ev->event_data.ptrace.process_pid;
 #endif
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					info1 = proc_info_get(pid);
 					row_increment();
 					(void)printf("%s ptrce %*d %s%s%6s %8s %s%s%s\n",
@@ -1797,6 +1819,9 @@ static int monitor(const int sock)
 				proc_stats_account(proc_ev->event_data.comm.process_pid, STAT_COMM);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_COMM)) {
 					pid = proc_ev->event_data.comm.process_pid;
+					pgrp = getpgid(pid);
+					if ((opt_pgrp >= 0) && (opt_pgrp != pgrp))
+						break;
 					info1 = proc_info_get(pid);
 					comm = proc_cmdline(pid);
 					row_increment();
@@ -1886,7 +1911,8 @@ int main(int argc, char * const argv[])
 	struct sigaction new_action;
 
 	for (;;) {
-		const int c = getopt(argc, argv, "cdD:e:EghlrsSqxX");
+		const int c = getopt(argc, argv, "cdD:e:EghlrsSp:qxX");
+
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1899,7 +1925,7 @@ int main(int argc, char * const argv[])
 		case 'D':
 			opt_duration = strtol(optarg, NULL, 10);
 			if (opt_duration <= 0) {
-				(void)fprintf(stderr, "Illegal duration.\n");
+				(void)fprintf(stderr, "Illegal duration '%s'.\n", optarg);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -1925,6 +1951,13 @@ int main(int argc, char * const argv[])
 			break;
 		case 'S':
 			opt_flags |= OPT_STATS;
+			break;
+		case 'p':
+			opt_pgrp = strtol(optarg, NULL, 10);
+			if (opt_pgrp < 0) {
+				(void)fprintf(stderr, "Illegal pgroup '%s'.\n", optarg);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'q':
 			opt_flags |= OPT_QUIET;

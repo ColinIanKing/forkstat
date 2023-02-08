@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH FORKSTAT 8 "15 November 2021"
+.TH FORKSTAT 8 "8 February 2023"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -21,20 +21,7 @@ forkstat \- a tool to show process fork/exec/exit activity
 
 .SH SYNOPSIS
 .B forkstat
-.RI [ \-c ]
-.RI [ \-d ]
-.RI [ \-D ]
-.RI [ \-e ]
-.RI [ \-E ]
-.RI [ \-g ]
-.RI [ \-h ]
-.RI [ \-l ]
-.RI [ \-r ]
-.RI [ \-s ]
-.RI [ \-S ]
-.RI [ \-q ]
-.RI [ \-x ]
-.RI [ \-X ]
+.RI [ options ]
 .br
 
 .SH DESCRIPTION
@@ -105,6 +92,9 @@ show brief help summary.
 .TP
 .B \-l
 set stdout to line-buffered mode.
+.TP
+.B \-p pgrpid
+only show processes that match the process group id pgrpid
 .TP
 .B \-r
 run with real time FIFO scheduling with maximum priority to keep up with high volumes
