@@ -1,3 +1,15 @@
+forkstat (0.03.01-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * debian/control: update standards version to 4.6.2
+  * Manual: update copyright
+  * forkstat: add -p process group id filtering option
+  * forkstat: handle empty arg in argv[], replace with ' '
+  * forkstat: make cmdline buffer 64K, allocate on heap
+  * Update copyright year
+
+ -- Colin Ian King <colin.i.king@gmail.com>  Wed, 8 Feb 2023 15:50:57 +0000
+
 forkstat (0.03.00-1) unstable; urgency=medium
 
   * Makefile: bump version to 0.03.00
