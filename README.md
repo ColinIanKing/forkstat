@@ -1,5 +1,9 @@
 # Forkstat
 
+<a href="https://repology.org/project/forkstat/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/forkstat.svg" alt="Packaging status" align="right">
+</a>
+
 Forkstat is a program that logs process fork(), exec() and exit() activity. It is useful for monitoring system behaviour and to track down rogue processes that are spawning off processes and potentially abusing the system.
 
 Note that forkstat uses the Linux netlink connector to gather process activity and this may miss events if the system is overly busy. Netlink connector also requires root privilege.
