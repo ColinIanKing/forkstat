@@ -50,7 +50,7 @@ dist:
 	rm -rf forkstat-$(VERSION)
 	mkdir forkstat-$(VERSION)
 	cp -rp Makefile forkstat.c forkstat.8 mascot COPYING \
-		snap .travis.yml bash-completion README.md forkstat-$(VERSION)
+		.travis.yml bash-completion README.md forkstat-$(VERSION)
 	tar -Jcf forkstat-$(VERSION).tar.xz forkstat-$(VERSION)
 	rm -rf forkstat-$(VERSION)
 
