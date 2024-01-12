@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 DPKG_EXPORT_BUILDFLAGS = 1
-
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 include /usr/share/dpkg/buildflags.mk
 
 %:
