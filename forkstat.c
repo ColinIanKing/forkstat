@@ -674,7 +674,7 @@ static int pid_max_digits(void)
 
 	buf[n] = '\0';
 	max_digits = 0;
-	while (buf[max_digits] >= '0' && buf[max_digits] <= '9')
+	while ((max_digits < n) && (buf[max_digits] >= '0') && (buf[max_digits] <= '9'))
 		max_digits++;
 	if (max_digits < min_digits)
 		max_digits = min_digits;
