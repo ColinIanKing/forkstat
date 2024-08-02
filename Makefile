@@ -35,9 +35,10 @@ endif
 
 export DEB_BUILD_HARDENING=1
 
-BINDIR=/usr/bin
-MANDIR=/usr/share/man/man8
-BASHDIR=/usr/share/bash-completion/completions
+PREFIX=/usr
+BINDIR=$(PREFIX)/bin
+MANDIR=$(PREFIX)/share/man/man8
+BASHDIR=$(PREFIX)/share/bash-completion/completions
 
 forkstat: forkstat.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDFLAGS)
