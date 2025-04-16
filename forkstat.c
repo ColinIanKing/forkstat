@@ -85,7 +85,8 @@
 #define OPT_EV_PTRC		(0x04000000)	/* Ptrace event */
 #define OPT_EV_UID		(0x08000000)	/* UID event */
 #define OPT_EV_SID		(0x10000000)	/* SID event */
-#define OPT_EV_MASK		(0x1ff00000)	/* Event mask */
+#define OPT_EV_NONZERO_EXIT	(0x20000000)	/* Exit event, non-zero exit */
+#define OPT_EV_MASK		(0x3ff00000)	/* Event mask */
 #define OPT_EV_ALL		(OPT_EV_MASK)	/* All events */
 
 #define	GOT_TGID		(0x01)
@@ -139,6 +140,7 @@ typedef enum {
 	STAT_PTRC,		/* Ptrace */
 	STAT_UID,		/* UID change */
 	STAT_SID,		/* SID change */
+	STAT_NONZERO_EXIT,	/* Non-zero exit */
 	STAT_LAST,		/* Always last sentinal */
 	STAT_NONE
 } event_t;
@@ -166,17 +168,18 @@ typedef struct {
 
 /* Mapping of event names to option flags and event_t types */
 static const ev_map_t ev_map[] = {
-	{ "fork", "Fork", 	OPT_EV_FORK,	STAT_FORK },
-	{ "exec", "Exec", 	OPT_EV_EXEC,	STAT_EXEC },
-	{ "exit", "Exit", 	OPT_EV_EXIT,	STAT_EXIT },
-	{ "core", "Coredump",	OPT_EV_CORE,	STAT_CORE },
-	{ "comm", "Comm", 	OPT_EV_COMM,	STAT_COMM },
-	{ "clone","Clone",	OPT_EV_CLNE,	STAT_CLNE },
-	{ "ptrce","Ptrace",	OPT_EV_PTRC,	STAT_PTRC },
-	{ "uid",  "Uid",	OPT_EV_UID,	STAT_UID  },
-	{ "sid",  "Sid",	OPT_EV_SID,	STAT_SID  },
-	{ "all",  "",		OPT_EV_ALL,	STAT_NONE },
-	{ NULL,	  NULL, 	0,		STAT_NONE }
+	{ "fork", 	"Fork", 	OPT_EV_FORK,		STAT_FORK },
+	{ "exec", 	"Exec", 	OPT_EV_EXEC,		STAT_EXEC },
+	{ "exit", 	"Exit", 	OPT_EV_EXIT,		STAT_EXIT },
+	{ "core", 	"Coredump",	OPT_EV_CORE,		STAT_CORE },
+	{ "comm", 	"Comm", 	OPT_EV_COMM,		STAT_COMM },
+	{ "clone",	"Clone",	OPT_EV_CLNE,		STAT_CLNE },
+	{ "ptrce",	"Ptrace",	OPT_EV_PTRC,		STAT_PTRC },
+	{ "uid",  	"Uid",		OPT_EV_UID,		STAT_UID  },
+	{ "sid",  	"Sid",		OPT_EV_SID,		STAT_SID  },
+	{ "nonzeroexit","NonzeroExit",  OPT_EV_NONZERO_EXIT, 	STAT_NONZERO_EXIT },
+	{ "all",  	"",		OPT_EV_ALL,		STAT_NONE },
+	{ NULL,	  	NULL, 		0,			STAT_NONE },
 };
 
 #define KERN_TASK_INFO(str)	{ str, sizeof(str) - 1 }
@@ -1673,6 +1676,9 @@ static int monitor(const int sock)
 						info1->kernel_thread ? "]" : "");
 				}
 				break;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,5,0)
+			case PROC_EVENT_NONZERO_EXIT:
+#endif
 			case PROC_EVENT_EXIT:
 				proc_stats_account(proc_ev->event_data.exit.process_pid, STAT_EXIT);
 				if (!(opt_flags & OPT_QUIET) && (opt_flags & OPT_EV_EXIT)) {

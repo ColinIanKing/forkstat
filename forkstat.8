@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH FORKSTAT 8 "12 January 2024"
+.TH FORKSTAT 8 "16 April 2025"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -63,7 +63,7 @@ strip off the directory path from the process name.
 specify duration in seconds to run forkstat.
 .TP
 .B \-e
-specify events to trace as a comma separated list. By default the fork, exec and exit 
+specify events to trace as a comma separated list. By default the fork, exec and exit
 events are traced. Available events are:
 .TS
 l lw(4i).
@@ -71,6 +71,7 @@ l lw(4i).
 fork	forks
 exec	execs
 exit	exits
+exitnonzero	non-zero exits
 core	core dumps
 comm	process name changes in comm field
 clone	clone (normally on thread creation)
@@ -84,7 +85,7 @@ all	all the events above
 enable all events, equivalent to \-e all
 .TP
 .B \-g
-show glyph annotations of events, useful for easier identification of 
+show glyph annotations of events, useful for easier identification of
 different events.
 .TP
 .B \-h
