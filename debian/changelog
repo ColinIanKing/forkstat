@@ -1,3 +1,13 @@
+forkstat (0.04.00-1) unstable; urgency=medium
+
+  * Makefile: bump version
+  * Manual: minor tweaks for lintian clean builds
+  * Manual: rework table headings
+  * debian/control: update standards version to 4.7.2
+  * Add support for PROC_EVENT_NONZERO_EXIT events
+
+ -- Colin Ian King <colin.i.king@gmail.com>  Wed, 16 Apr 2025 09:50:24 +0100
+
 forkstat (0.03.02-1) unstable; urgency=medium
 
   * Makefile: bump version
